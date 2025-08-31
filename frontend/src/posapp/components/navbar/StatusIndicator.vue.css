@@ -1,0 +1,64 @@
+
+/* Enhanced Status Section */
+.status-section-enhanced {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	/* Reduced gap */
+	margin-right: 8px;
+	/* Reduced margin */
+}
+
+.status-btn-enhanced {
+	background: rgba(25, 118, 210, 0.1) !important;
+	border: 1px solid rgba(25, 118, 210, 0.3);
+	transition: all 0.3s ease;
+	padding: 4px;
+	/* Reduced padding */
+}
+
+.status-btn-enhanced:hover {
+	background: rgba(25, 118, 210, 0.2) !important;
+	transform: scale(1.05);
+}
+
+.status-info-always-visible {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	min-width: 120px;
+}
+
+.status-title-inline {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.2;
+	transition: color 0.3s ease;
+}
+
+.status-title-inline.status-connected {
+	color: #4caf50;
+}
+
+.status-title-inline.status-offline {
+	color: #f44336;
+}
+
+.status-detail-inline {
+	font-size: 11px;
+	color: #666;
+	line-height: 1.2;
+	margin-top: 2px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+	.status-info-always-visible {
+		display: none;
+	}
+
+	.status-section-enhanced {
+		margin-right: 4px;
+		/* Further reduced for mobile */
+	}
+}

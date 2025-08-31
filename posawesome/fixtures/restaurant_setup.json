@@ -1,0 +1,79 @@
+[
+  {
+    "doctype": "Restaurant Order Type",
+    "name": "Dine In",
+    "order_type_name": "Dine In",
+    "description": "Customer dining in the restaurant",
+    "requires_table": 1,
+    "default_preparation_time": 15,
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Order Type",
+    "name": "Take Away",
+    "order_type_name": "Take Away",
+    "description": "Customer taking order to go",
+    "requires_table": 0,
+    "default_preparation_time": 10,
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Order Type",
+    "name": "Delivery",
+    "order_type_name": "Delivery",
+    "description": "Order delivered to customer location",
+    "requires_table": 0,
+    "default_preparation_time": 20,
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Table",
+    "name": "T01",
+    "table_number": "T01",
+    "table_name": "Table 1",
+    "capacity": 2,
+    "location": "Window Side",
+    "status": "Available",
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Table",
+    "name": "T02",
+    "table_number": "T02",
+    "table_name": "Table 2",
+    "capacity": 4,
+    "location": "Center",
+    "status": "Available",
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Table",
+    "name": "T03",
+    "table_number": "T03",
+    "table_name": "Table 3",
+    "capacity": 6,
+    "location": "Corner",
+    "status": "Available",
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Table",
+    "name": "T04",
+    "table_number": "T04",
+    "table_name": "Table 4",
+    "capacity": 2,
+    "location": "Bar Area",
+    "status": "Available",
+    "enabled": 1
+  },
+  {
+    "doctype": "Restaurant Table",
+    "name": "T05",
+    "table_number": "T05",
+    "table_name": "Table 5",
+    "capacity": 8,
+    "location": "Private Room",
+    "status": "Available",
+    "enabled": 1
+  }
+]

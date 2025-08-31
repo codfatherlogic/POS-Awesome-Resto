@@ -1,0 +1,86 @@
+
+/* Dark mode styling for input wrapper */
+:deep([data-theme="dark"]) .dark-field,
+:deep(.v-theme--dark) .dark-field,
+::v-deep([data-theme="dark"]) .dark-field,
+::v-deep(.v-theme--dark) .dark-field {
+	background-color: #1e1e1e !important;
+}
+
+/* Ensure input text and label are readable */
+:deep([data-theme="dark"]) .dark-field :deep(.v-field__input),
+:deep(.v-theme--dark) .dark-field :deep(.v-field__input),
+:deep([data-theme="dark"]) .dark-field :deep(input),
+:deep(.v-theme--dark) .dark-field :deep(input),
+:deep([data-theme="dark"]) .dark-field :deep(.v-label),
+:deep(.v-theme--dark) .dark-field :deep(.v-label),
+::v-deep([data-theme="dark"]) .dark-field .v-field__input,
+::v-deep(.v-theme--dark) .dark-field .v-field__input,
+::v-deep([data-theme="dark"]) .dark-field input,
+::v-deep(.v-theme--dark) .dark-field input,
+::v-deep([data-theme="dark"]) .dark-field .v-label,
+::v-deep(.v-theme--dark) .dark-field .v-label {
+	color: #fff !important;
+}
+
+/* Overlay background in dark mode */
+:deep([data-theme="dark"]) .dark-field :deep(.v-field__overlay),
+:deep(.v-theme--dark) .dark-field :deep(.v-field__overlay),
+::v-deep([data-theme="dark"]) .dark-field .v-field__overlay,
+::v-deep(.v-theme--dark) .dark-field .v-field__overlay {
+	background-color: #1e1e1e !important;
+}
+
+/* Dark mode styling for date picker input */
+:deep([data-theme="dark"]) .dp__input,
+:deep(.v-theme--dark) .dp__input,
+::v-deep([data-theme="dark"]) .dp__input,
+::v-deep(.v-theme--dark) .dp__input {
+	background-color: #1e1e1e !important;
+	color: #fff !important;
+}
+
+/* Dark mode styling for date picker calendar dropdown */
+:deep([data-theme="dark"]) .dp__menu,
+:deep(.v-theme--dark) .dp__menu,
+::v-deep([data-theme="dark"]) .dp__menu,
+::v-deep(.v-theme--dark) .dp__menu {
+	background-color: #1e1e1e !important;
+	color: #fff !important;
+}
+
+/* Sleek design for VueDatePicker */
+:deep(.sleek-field) .dp__input_wrap {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+:deep(.sleek-field) .dp__input {
+	width: 100%;
+	border-radius: 12px;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+	transition: box-shadow 0.3s ease;
+	background-color: var(--field-bg);
+	color: var(--text-primary);
+	padding: 10px 12px;
+}
+
+:deep(.sleek-field:hover) .dp__input {
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* Align calendar icon to the right, before the clear icon */
+.posting-date-input :deep(.dp__input_icon) {
+	inset-inline-start: auto;
+	inset-inline-end: 30px;
+}
+
+/* Remove extra left padding added for left icon placement */
+.posting-date-input :deep(.dp__input_icon_pad) {
+	padding-inline-start: 12px;
+}
+
+/* Increase right padding to accommodate both icons */
+.posting-date-input :deep(.dp__input) {
+	padding-right: calc(30px + var(--dp-input-icon-padding));
+}

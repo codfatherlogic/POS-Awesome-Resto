@@ -1,0 +1,206 @@
+
+/* Force LTR formatting for server usage gadget */
+.cpu-gadget-section,
+.cpu-gadget-section * {
+	direction: ltr !important;
+	text-align: left !important;
+}
+
+.cpu-gadget-section {
+	display: flex;
+	align-items: center;
+	margin: 0 8px;
+	direction: ltr;
+	text-align: left;
+}
+
+.cpu-meter-container {
+	cursor: pointer;
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.3s ease;
+}
+
+.cpu-meter-container:hover {
+	transform: scale(1.1);
+}
+
+.cpu-meter {
+	transition: all 0.3s ease;
+}
+
+.cpu-tooltip-content {
+	@apply p-3 min-w-[180px];
+	direction: ltr;
+	text-align: left;
+}
+
+.cpu-tooltip-title {
+	font-weight: 600;
+	font-size: 14px;
+	margin-bottom: 8px;
+	color: var(--primary);
+}
+
+.cpu-tooltip-detail {
+	font-size: 12px;
+	margin-bottom: 8px;
+	line-height: 1.5;
+	direction: ltr;
+	text-align: left;
+}
+
+.cpu-tooltip-action {
+	font-size: 11px;
+	opacity: 0.7;
+	display: flex;
+	align-items: center;
+	margin-top: 8px;
+	color: var(--primary);
+	direction: ltr;
+	text-align: left;
+}
+
+.cpu-tooltip-bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+.cpu-bar-bg {
+	width: 80px;
+	height: 8px;
+	background: #e3f2fd;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-right: 6px;
+}
+.cpu-bar-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #7b1fa2 0%, #42a5f5 100%);
+	border-radius: 4px;
+	transition: width 0.3s;
+}
+.cpu-bar-label {
+	font-size: 11px;
+	color: #7b1fa2;
+	font-weight: 600;
+}
+.cpu-tooltip-warning {
+	color: #d32f2f;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	margin-bottom: 4px;
+	direction: ltr;
+	text-align: left;
+}
+.cpu-tooltip-tip {
+	color: #1976d2;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	direction: ltr;
+	text-align: left;
+}
+.cpu-tooltip-explanation {
+	color: #0288d1;
+	font-size: 12px;
+	display: flex;
+	align-items: center;
+	direction: ltr;
+	text-align: left;
+}
+
+.cpu-sparkline-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.cpu-sparkline {
+	display: block;
+	background: none;
+}
+.cpu-current-lag {
+	font-size: 13px;
+	font-weight: 600;
+	color: #4caf50;
+	min-width: 48px;
+	text-align: right;
+	direction: ltr;
+}
+.cpu-tooltip-sparkline {
+	width: 180px;
+	height: 40px;
+	margin-bottom: 8px;
+}
+.cpu-sparkline-large {
+	display: block;
+	background: none;
+}
+
+.cpu-tooltip-legend {
+	font-size: 12px;
+	margin-bottom: 4px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.legend-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	margin-right: 4px;
+}
+.legend-dot.client {
+	background: #4caf50;
+}
+.legend-dot.server {
+	background: #1976d2;
+}
+
+/* Fix tooltip background and text color in light mode */
+:deep(.v-tooltip .v-overlay__content),
+:deep(.v-overlay__content) {
+	background: #e3f2fd !important;
+	color: #1a237e !important;
+	box-shadow: 0 4px 16px rgba(25, 118, 210, 0.1) !important;
+	border: 1px solid #90caf9 !important;
+	direction: ltr !important;
+	text-align: left !important;
+}
+
+.cpu-tooltip-title,
+.cpu-tooltip-action {
+	color: #1a237e !important;
+}
+
+:deep([data-theme="dark"]) .v-tooltip .v-overlay__content,
+:deep(.v-theme--dark) .v-tooltip .v-overlay__content,
+:deep([data-theme="dark"]) .v-overlay__content,
+:deep(.v-theme--dark) .v-overlay__content {
+	background: #26344d !important;
+	color: #fff !important;
+	border: 1px solid #1976d2 !important;
+	direction: ltr !important;
+	text-align: left !important;
+}
+
+:deep([data-theme="dark"]) .cpu-tooltip-title,
+:deep(.v-theme--dark) .cpu-tooltip-title,
+:deep([data-theme="dark"]) .cpu-tooltip-action,
+:deep(.v-theme--dark) .cpu-tooltip-action {
+	color: #fff !important;
+}
+.cpu-tooltip-section-title {
+	font-weight: 600;
+	font-size: 13px;
+	margin-bottom: 4px;
+	color: var(--primary);
+	opacity: 0.85;
+	direction: ltr;
+	text-align: left;
+}

@@ -1,0 +1,172 @@
+
+/* Enhanced Header Styles */
+.closing-header {
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	border-bottom: 1px solid #e0e0e0;
+	padding: 24px !important;
+}
+
+.header-content {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	width: 100%;
+}
+
+.header-icon-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 64px;
+	height: 64px;
+	background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+	border-radius: 16px;
+	box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+.header-icon {
+	color: white !important;
+}
+
+.header-text {
+	flex: 1;
+}
+
+.header-title {
+	font-size: 1.5rem;
+	font-weight: 600;
+	color: #1a1a1a;
+	margin: 0 0 4px 0;
+	line-height: 1.2;
+}
+
+.header-subtitle {
+	font-size: 0.95rem;
+	color: #666;
+	margin: 0;
+	font-weight: 400;
+}
+
+.header-divider {
+	border-color: #e0e0e0;
+}
+
+.white-background {
+	background-color: #ffffff;
+}
+
+.table-header {
+	padding: 0 4px;
+}
+
+.white-table {
+	background-color: white;
+	border: 1px solid #e0e0e0;
+}
+
+/* Action Buttons */
+.dialog-actions-container {
+	background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+	border-top: 1px solid #e0e0e0;
+	padding: 16px 24px;
+	gap: 12px;
+}
+
+.pos-action-btn {
+	border-radius: 12px;
+	text-transform: none;
+	font-weight: 600;
+	padding: 12px 32px;
+	min-width: 120px;
+	transition: all 0.3s ease;
+	color: white !important;
+	/* Add this line */
+}
+
+/* Add these new rules: */
+.pos-action-btn .v-icon {
+	color: white !important;
+}
+
+.pos-action-btn span {
+	color: white !important;
+}
+
+.pos-action-btn:disabled .v-icon,
+.pos-action-btn:disabled span {
+	color: white !important;
+}
+
+.cancel-action-btn {
+	background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
+}
+
+.submit-action-btn {
+	background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%) !important;
+}
+
+.submit-action-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+}
+
+.cancel-action-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 6px 20px rgba(211, 47, 47, 0.4);
+}
+
+.submit-action-btn:disabled {
+	opacity: 0.6;
+	transform: none;
+}
+
+/* Dark theme overrides */
+:deep([data-theme="dark"]) .closing-dialog-card,
+:deep(.v-theme--dark) .closing-dialog-card,
+::v-deep([data-theme="dark"]) .closing-dialog-card,
+::v-deep(.v-theme--dark) .closing-dialog-card {
+	background: #1e1e1e !important;
+}
+
+:deep([data-theme="dark"]) .closing-header,
+:deep(.v-theme--dark) .closing-header,
+::v-deep([data-theme="dark"]) .closing-header,
+::v-deep(.v-theme--dark) .closing-header {
+	background: #1e1e1e !important;
+	color: #fff !important;
+	border-bottom: 1px solid #373737;
+}
+
+:deep([data-theme="dark"]) .white-background,
+:deep(.v-theme--dark) .white-background,
+::v-deep([data-theme="dark"]) .white-background,
+::v-deep(.v-theme--dark) .white-background {
+	background-color: #1e1e1e !important;
+}
+
+:deep([data-theme="dark"]) .white-table,
+:deep(.v-theme--dark) .white-table,
+::v-deep([data-theme="dark"]) .white-table,
+::v-deep(.v-theme--dark) .white-table {
+	background-color: #1e1e1e !important;
+}
+
+:deep([data-theme="dark"]) .dialog-actions-container,
+:deep(.v-theme--dark) .dialog-actions-container,
+::v-deep([data-theme="dark"]) .dialog-actions-container,
+::v-deep(.v-theme--dark) .dialog-actions-container {
+	background: #1e1e1e !important;
+	border-top: 1px solid #373737;
+}
+
+/* And the responsive section: */
+@media (max-width: 768px) {
+	.dialog-actions-container {
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	.pos-action-btn {
+		width: 100%;
+	}
+}

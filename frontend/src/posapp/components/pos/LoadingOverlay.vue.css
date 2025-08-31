@@ -1,0 +1,8 @@
+
+.fancy-overlay {
+	backdrop-filter: blur(2px);
+}
+.elegant-progress {
+	width: 60%;
+	max-width: 320px;
+}

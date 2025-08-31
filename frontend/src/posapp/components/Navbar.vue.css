@@ -1,0 +1,17 @@
+
+/* Main navigation container styles */
+nav {
+	position: relative;
+	z-index: 1000;
+}
+
+/* Snackbar positioning */
+:deep(.v-snackbar) {
+	z-index: 9999;
+}
+
+/* Dark theme adjustments */
+:deep([data-theme="dark"]) nav,
+:deep(.v-theme--dark) nav {
+	background-color: var(--background) !important;
+}

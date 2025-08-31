@@ -1,0 +1,14 @@
+
+:deep([data-theme="dark"]) .v-card,
+:deep(.v-theme--dark) .v-card {
+	background-color: #1e1e1e !important;
+}
+
+:deep([data-theme="dark"]) .v-data-table,
+:deep(.v-theme--dark) .v-data-table {
+	background-color: #1e1e1e !important;
+}
+
+.v-chip {
+	font-weight: 500;
+}

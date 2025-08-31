@@ -1,0 +1,162 @@
+
+/* Card background adjustments */
+.cards {
+	background-color: var(--surface-secondary) !important;
+}
+
+/* Style for selected checkbox button */
+.v-checkbox-btn.v-selected {
+	background-color: var(--submit-start) !important;
+	color: white;
+}
+
+/* Bottom border for elements */
+.border_line_bottom {
+	border-bottom: 1px solid var(--field-border);
+}
+
+/* Disable pointer events for elements */
+.disable-events {
+	pointer-events: none;
+}
+
+/* Style for customer balance field */
+:deep(.balance-field) {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: nowrap;
+}
+
+/* Style for balance value text */
+:deep(.balance-value) {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: var(--primary-start);
+	margin-left: var(--dynamic-xs);
+}
+
+/* Red border and label for return mode card */
+
+/* Red border and label for return mode card */
+
+.return-mode {
+	border: 2px solid rgb(var(--v-theme-error)) !important;
+	position: relative;
+}
+
+/* Label for return mode card */
+.return-mode::before {
+	content: "RETURN";
+	position: absolute;
+	top: 0;
+	right: 0;
+	background-color: rgb(var(--v-theme-error));
+	color: white;
+	padding: 4px 12px;
+	font-weight: bold;
+	border-bottom-left-radius: 8px;
+	z-index: 1;
+}
+
+/* Blue border and label for edit mode card */
+
+.edit-mode {
+	border: 2px solid rgb(var(--v-theme-info)) !important;
+	position: relative;
+}
+
+/* Label for edit mode card */
+.edit-mode::before {
+	content: "EDIT ORDER";
+	position: absolute;
+	top: 0;
+	right: 0;
+	background-color: rgb(var(--v-theme-info));
+	color: white;
+	padding: 4px 12px;
+	font-weight: bold;
+	border-bottom-left-radius: 8px;
+	z-index: 1;
+}
+
+/* Dynamic padding for responsive layout */
+.dynamic-padding {
+	/* Uniform spacing for better alignment */
+	padding: var(--dynamic-sm);
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+	.dynamic-padding {
+		/* Smaller uniform padding on tablets */
+		padding: var(--dynamic-xs);
+	}
+
+	.dynamic-padding .v-row {
+		margin: 0 -2px;
+	}
+
+	.dynamic-padding .v-col {
+		padding: 2px 4px;
+	}
+}
+
+@media (max-width: 480px) {
+	.dynamic-padding {
+		padding: var(--dynamic-xs);
+	}
+
+	.dynamic-padding .v-row {
+		margin: 0 -1px;
+	}
+
+	.dynamic-padding .v-col {
+		padding: 1px 2px;
+	}
+}
+
+.column-selector-container {
+	display: flex;
+	justify-content: flex-end;
+	padding: 8px 16px;
+	background-color: var(--surface-secondary);
+	border-radius: 8px 8px 0 0;
+	position: absolute;
+	top: 0;
+	right: 0;
+	transform: translateY(-100%);
+}
+
+:deep([data-theme="dark"]) .column-selector-container,
+:deep(.v-theme--dark) .column-selector-container {
+	background-color: #1e1e1e;
+}
+
+.column-selector-btn {
+	font-size: 0.875rem;
+}
+
+.items-table-wrapper {
+	position: relative;
+	margin-top: var(--dynamic-xl);
+}
+
+/* New styles for improved column switches */
+:deep(.column-switch) {
+	margin: 0;
+	padding: 0;
+}
+
+:deep(.column-switch .v-switch__track) {
+	opacity: 0.7;
+}
+
+:deep(.column-switch .v-switch__thumb) {
+	transform: scale(0.8);
+}
+
+:deep(.column-switch .v-label) {
+	opacity: 0.9;
+	font-size: 0.95rem;
+}

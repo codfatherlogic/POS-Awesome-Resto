@@ -1,0 +1,15 @@
+
+.coupon-input {
+	height: 40px;
+}
+
+.add-coupon-btn {
+	height: 40px;
+	font-weight: 600 !important;
+	transition: all 0.3s ease !important;
+}
+
+.add-coupon-btn:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
