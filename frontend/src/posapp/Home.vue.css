@@ -1,9 +1,12 @@
 
-.container1 {
-	/* Use dynamic viewport units for better mobile support */
-	height: 100dvh;
-	max-height: 100dvh;
+.pos-app-content {
+	/* Work within the Frappe page structure naturally */
+	min-height: 600px; /* Minimum height instead of viewport height */
 	overflow: hidden;
+	/* Ensure this doesn't overlay the navbar */
+	position: relative;
+	top: 0;
+	z-index: 1;
 }
 
 .main-content {

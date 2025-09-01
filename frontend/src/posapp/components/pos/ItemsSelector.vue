@@ -1189,8 +1189,18 @@ export default {
 			// fetches the latest data from the server
 			await clearPriceListCache();
 			console.log("[ItemsSelector] price list cache cleared");
+			
+			// Clear stored items from IndexedDB to prevent cache conflicts
+			await clearStoredItems();
+			console.log("[ItemsSelector] stored items cleared");
+			
 			await this.ensureStorageHealth();
 			console.log("[ItemsSelector] storage health ensured");
+			
+			// Clear items array to prevent duplicates
+			this.items = [];
+			console.log("[ItemsSelector] items array cleared");
+			
 			this.items_loaded = false;
 
 			// When no search term is entered, reset the search so
@@ -1282,6 +1292,13 @@ export default {
 				console.log("[ItemsSelector] items already loaded, skipping fetch");
 				this.loading = false;
 				return;
+			}
+
+			// Clear items array when forcing server reload to prevent duplicates
+			if (force_server) {
+				console.log("[ItemsSelector] force_server=true, clearing items array");
+				this.items = [];
+				this.items_loaded = false;
 			}
 
 			this.loading = true;
@@ -1471,10 +1488,19 @@ export default {
 							}
 							if (ev.data.type === "parsed") {
 								const newItems = ev.data.items || [];
+								console.log("[ItemsSelector] processing newItems batch", { 
+									count: newItems.length, 
+									currentItemsCount: this.items.length 
+								});
 								newItems.forEach((it) => {
 									const existing = this.items.find((i) => i.item_code === it.item_code);
-									if (existing) Object.assign(existing, it);
-									else this.items.push(it);
+									if (existing) {
+										console.log("[ItemsSelector] updating existing item", it.item_code);
+										Object.assign(existing, it);
+									} else {
+										console.log("[ItemsSelector] adding new item", it.item_code);
+										this.items.push(it);
+									}
 								});
 								lastItemName = newItems[newItems.length - 1]?.item_name || null;
 								this.eventBus.emit("set_all_items", this.items);

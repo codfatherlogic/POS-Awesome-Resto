@@ -1,5 +1,5 @@
 <template>
-	<v-app class="container1" :class="rtlClasses">
+	<v-app class="pos-app-content" :class="rtlClasses">
 		<v-main class="main-content">
 			<Navbar
 				:pos-profile="posProfile"
@@ -151,7 +151,9 @@ export default {
 		Payments,
 	},
 	mounted() {
-		this.remove_frappe_nav();
+		// Keep Frappe navbar visible - don't remove it
+		console.log("POS App mounted - preserving Frappe navbar");
+		
 		// Initialize cache ready state early from stored value
 		this.cacheReady = isCacheReady();
 		initLoadingSources(["init", "items", "customers"]);
@@ -464,9 +466,14 @@ export default {
 		},
 
 		remove_frappe_nav() {
+			// This function is disabled - navbar should always be visible
+			console.log("remove_frappe_nav() called but disabled");
+		},		adjustForDualNavbars() {
+			// Add any necessary styling adjustments when both Frappe and POS navbars are visible
+			// This ensures proper spacing and prevents overlap
 			this.$nextTick(function () {
-				$(".page-head").remove();
-				$(".navbar.navbar-default.navbar-fixed-top").remove();
+				// You can add CSS adjustments here if needed
+				// For example, adjusting top padding if navbars overlap
 			});
 		},
 	},
@@ -479,19 +486,21 @@ export default {
 		clearLoadingTimeout();
 	},
 	created: function () {
-		setTimeout(() => {
-			this.remove_frappe_nav();
-		}, 1000);
+		// Let the Frappe page handle navbar visibility
+		console.log("POS Awesome loaded - navbar handled by Frappe page");
 	},
 };
 </script>
 
 <style scoped>
-.container1 {
-	/* Use dynamic viewport units for better mobile support */
-	height: 100dvh;
-	max-height: 100dvh;
+.pos-app-content {
+	/* Work within the Frappe page structure naturally */
+	min-height: 600px; /* Minimum height instead of viewport height */
 	overflow: hidden;
+	/* Ensure this doesn't overlay the navbar */
+	position: relative;
+	top: 0;
+	z-index: 1;
 }
 
 .main-content {

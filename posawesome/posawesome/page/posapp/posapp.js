@@ -8,7 +8,34 @@ frappe.pages["posapp"].on_page_load = async function (wrapper) {
 
 	this.page.$PosApp = new frappe.PosApp.posapp(this.page);
 
+	// Ensure Frappe navbar stays visible and properly styled
+	$("div.navbar-fixed-top").show().css({
+		"display": "block !important",
+		"visibility": "visible !important",
+		"z-index": "1030",
+		"position": "fixed",
+		"top": "0"
+	});
+	
+	// Reset any padding that might interfere
 	$("div.navbar-fixed-top").find(".container").css("padding", "0");
+	
+	// Make sure page-head is visible if it exists
+	$(".page-head").show().css({
+		"display": "block !important",
+		"visibility": "visible !important"
+	});
+	
+	// Ensure search and help elements are visible
+	$(".navbar-search, .global-search, .help-menu").show().css({
+		"display": "block !important",
+		"visibility": "visible !important"
+	});
+	
+	// Force body to have proper top margin for navbar
+	$("body").css("padding-top", "50px");
+	
+	console.log("Frappe navbar visibility forced in posapp.js");
 
 	$("head").append(
 		"<link href='/assets/posawesome/node_modules/vuetify/dist/vuetify.min.css' rel='stylesheet'>",
