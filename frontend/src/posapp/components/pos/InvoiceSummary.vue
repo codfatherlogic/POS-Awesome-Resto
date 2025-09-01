@@ -106,7 +106,7 @@
 							{{ pos_profile.posa_enable_restaurant_mode ? (hasExistingOrder ? __("Update Order") : __("Make Order")) : __("Save & Clear") }}
 						</v-btn>
 					</v-col>
-					<v-col cols="6">
+					<v-col cols="6" v-if="false">
 						<v-btn
 							block
 							color="warning"
@@ -145,23 +145,8 @@
 							{{ __("Show Orders") }}
 						</v-btn>
 					</v-col>
-					<!-- KOT Print Button for Restaurant Mode -->
-					<v-col cols="6" v-if="pos_profile.posa_enable_restaurant_mode && items && items.length > 0">
-						<v-btn
-							block
-							color="orange-darken-1"
-							theme="dark"
-							prepend-icon="mdi-silverware-fork-knife"
-							@click="handlePrintKOT"
-							class="summary-btn kot-btn"
-							:loading="kotPrintLoading"
-							elevation="2"
-						>
-							{{ __("🍳 Print KOT") }}
-						</v-btn>
-					</v-col>
 					<!-- Only show Submit Order for new orders (no existing order name) -->
-					<v-col cols="6" v-if="pos_profile.posa_enable_restaurant_mode && !hasExistingOrder">
+					<v-col cols="6" v-if="false && pos_profile.posa_enable_restaurant_mode && !hasExistingOrder">
 						<v-btn
 							block
 							color="primary"
@@ -239,7 +224,6 @@ export default {
 	props: {
 		pos_profile: Object,
 		invoice_doc: Object,
-		items: Array,
 		total_qty: [Number, String],
 		additional_discount: Number,
 		additional_discount_percentage: Number,
@@ -251,6 +235,7 @@ export default {
 		currencySymbol: Function,
 		discount_percentage_offer_name: [String, Number],
 		isNumber: Function,
+		restaurant_add_items_context: Object,
 	},
 	data() {
 		return {
@@ -264,7 +249,6 @@ export default {
 			returnsLoading: false,
 			printLoading: false,
 			paymentLoading: false,
-			kotPrintLoading: false,
 		};
 	},
 	emits: [
@@ -275,7 +259,6 @@ export default {
 		"load-drafts",
 		"select-order",
 		"show-orders",
-		"print-kot",
 		"submit-order",
 		"cancel-sale",
 		"open-returns",
@@ -299,8 +282,9 @@ export default {
 			return false;
 		},
 		hasExistingOrder() {
-			// Check if we have an existing order loaded
-			return !!(this.invoice_doc && this.invoice_doc.name);
+			// Check if we have an existing order loaded OR if we're adding items to an existing order
+			return !!(this.invoice_doc && this.invoice_doc.name) || 
+					 !!(this.restaurant_add_items_context && this.restaurant_add_items_context.is_updating_order);
 		},
 	},
 	methods: {
@@ -346,15 +330,6 @@ export default {
 				await this.$emit("show-orders");
 			} finally {
 				this.showOrdersLoading = false;
-			}
-		},
-
-		async handlePrintKOT() {
-			this.kotPrintLoading = true;
-			try {
-				await this.$emit("print-kot");
-			} finally {
-				this.kotPrintLoading = false;
 			}
 		},
 
@@ -468,21 +443,6 @@ export default {
 	background: linear-gradient(135deg, #45a049, #3d8b40) !important;
 	box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4) !important;
 	transform: translateY(-2px);
-}
-
-/* Special styling for the KOT button */
-.kot-btn {
-	font-weight: 600 !important;
-	background: linear-gradient(135deg, #ff9800, #f57c00) !important;
-	box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
-	border: 2px solid rgba(255, 152, 0, 0.2) !important;
-}
-
-.kot-btn:hover {
-	background: linear-gradient(135deg, #f57c00, #ef6c00) !important;
-	box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4) !important;
-	transform: translateY(-2px);
-	border-color: rgba(255, 152, 0, 0.4) !important;
 }
 
 /* Enhanced field styling */

@@ -73,10 +73,21 @@ def create_restaurant_order(order_data):
 	# Occupy table if it's a dine-in order
 	if table_number and sales_order:
 		try:
-			table_doc = frappe.get_doc("Restaurant Table", {"table_number": table_number})
-			table_doc.occupy_table(sales_order.name)
+			# Get table by table_number
+			table_list = frappe.get_all("Restaurant Table", 
+				filters={"table_number": table_number}, 
+				fields=["name"]
+			)
+			if table_list:
+				table_doc = frappe.get_doc("Restaurant Table", table_list[0].name)
+				table_doc.occupy_table(sales_order.name)
+				frappe.db.commit()  # Ensure the change is committed
+				frappe.logger().info(f"Successfully occupied table {table_number} with order {sales_order.name}")
+			else:
+				frappe.logger().error(f"Table with number {table_number} not found")
 		except Exception as e:
 			frappe.log_error(f"Failed to occupy table {table_number}: {str(e)}")
+			frappe.logger().error(f"Failed to occupy table {table_number}: {str(e)}")
 			# Don't fail the order creation if table occupation fails
 	
 	# Check if auto-print KOT is enabled and generate KOT data
@@ -135,8 +146,15 @@ def submit_restaurant_order(order_data):
 	table_number = order_data.get("table_number")
 	if table_number and result.get("name"):
 		try:
-			table_doc = frappe.get_doc("Restaurant Table", {"table_number": table_number})
-			table_doc.occupy_table(result["name"])
+			# Get table by table_number
+			table_list = frappe.get_all("Restaurant Table", 
+				filters={"table_number": table_number}, 
+				fields=["name"]
+			)
+			if table_list:
+				table_doc = frappe.get_doc("Restaurant Table", table_list[0].name)
+				table_doc.occupy_table(result["name"])
+				frappe.db.commit()  # Ensure the change is committed
 		except Exception as e:
 			frappe.log_error(f"Failed to occupy table {table_number}: {str(e)}")
 	
@@ -449,9 +467,16 @@ def cancel_restaurant_order(sales_order_name):
 	# Free table if it was occupied
 	if sales_order.get("table_number"):
 		try:
-			table_doc = frappe.get_doc("Restaurant Table", {"table_number": sales_order.table_number})
-			if table_doc.current_order == sales_order_name:
-				table_doc.free_table()
+			# Get table by table_number
+			table_list = frappe.get_all("Restaurant Table", 
+				filters={"table_number": sales_order.table_number}, 
+				fields=["name"]
+			)
+			if table_list:
+				table_doc = frappe.get_doc("Restaurant Table", table_list[0].name)
+				if table_doc.current_order == sales_order_name:
+					table_doc.free_table()
+					frappe.db.commit()  # Ensure the change is committed
 		except Exception as e:
 			frappe.log_error(f"Failed to free table {sales_order.table_number}: {str(e)}")
 	
@@ -472,9 +497,16 @@ def delete_restaurant_order(sales_order_name):
 	# Free table if it was occupied
 	if sales_order.get("table_number"):
 		try:
-			table_doc = frappe.get_doc("Restaurant Table", {"table_number": sales_order.table_number})
-			if table_doc.current_order == sales_order_name:
-				table_doc.free_table()
+			# Get table by table_number
+			table_list = frappe.get_all("Restaurant Table", 
+				filters={"table_number": sales_order.table_number}, 
+				fields=["name"]
+			)
+			if table_list:
+				table_doc = frappe.get_doc("Restaurant Table", table_list[0].name)
+				if table_doc.current_order == sales_order_name:
+					table_doc.free_table()
+					frappe.db.commit()  # Ensure the change is committed
 		except Exception as e:
 			frappe.log_error(f"Failed to free table {sales_order.table_number}: {str(e)}")
 	
@@ -572,6 +604,50 @@ def generate_kot_print(order_data):
 	
 	return kot_data
 
+def generate_void_kot_print(sales_order, voided_items):
+	"""Generate Kitchen Order Ticket (KOT) print data for voided items"""
+	
+	# Get order type name
+	order_type_name = ""
+	if sales_order.restaurant_order_type:
+		try:
+			order_type_doc = frappe.get_doc("Restaurant Order Type", sales_order.restaurant_order_type)
+			order_type_name = order_type_doc.order_type_name
+		except:
+			order_type_name = sales_order.restaurant_order_type
+	
+	# Prepare Void KOT data
+	void_kot_data = {
+		"kot_number": f"VOID-KOT-{now_datetime().strftime('%Y%m%d-%H%M%S')}",
+		"order_number": sales_order.name,
+		"order_type": order_type_name or _("Standard"),
+		"table_number": sales_order.table_number or "",
+		"customer_name": sales_order.customer_name or sales_order.customer or _("Walk-in Customer"),
+		"datetime": now_datetime().strftime("%Y-%m-%d %H:%M:%S"),
+		"voided_items": [],
+		"special_notes": _("VOID - Items cancelled from order"),
+		"total_voided_items": 0,
+		"is_void": True,
+		"void_reason": _("Items voided by staff")
+	}
+	
+	# Process voided items for KOT
+	total_qty = 0
+	for item in voided_items:
+		void_kot_item = {
+			"item_code": item.get("item_code", ""),
+			"item_name": item.get("item_name", ""),
+			"qty": item.get("qty", 0),
+			"uom": "Nos",  # Default UOM
+			"status": "VOIDED"
+		}
+		void_kot_data["voided_items"].append(void_kot_item)
+		total_qty += float(item.get("qty", 0))
+	
+	void_kot_data["total_voided_items"] = int(total_qty)
+	
+	return void_kot_data
+
 @frappe.whitelist()
 def reprint_kot(order_name):
 	"""Reprint KOT for an existing order"""
@@ -582,10 +658,10 @@ def reprint_kot(order_name):
 		# Convert sales order to order_data format needed by generate_kot_html
 		order_data = {
 			"customer": sales_order.customer,
+			"customer_name": sales_order.customer_name or sales_order.customer,
 			"items": [],
 			"table_number": sales_order.table_number,
 			"restaurant_order_type": sales_order.restaurant_order_type,
-			"pos_profile": sales_order.pos_profile,
 			"order_date": sales_order.transaction_date or sales_order.order_date,
 			"name": sales_order.name
 		}
@@ -620,19 +696,18 @@ def generate_kot_html(order_data):
 	# Generate KOT HTML template
 	items_html = ""
 	for item in kot_data["items"]:
-		special_note = f"<br><small><i>{item['special_instructions']}</i></small>" if item["special_instructions"] else ""
 		items_html += f"""
 		<tr>
-			<td style="border-bottom: 1px dashed #ccc; padding: 5px 0;">
-				<strong>{item['item_name']}</strong>{special_note}
+			<td style="padding: 2px 0; border-bottom: 1px dotted #ccc;">
+				{item['item_name']}
 			</td>
-			<td style="border-bottom: 1px dashed #ccc; padding: 5px 0; text-align: center;">
-				<strong>{item['qty']} {item['uom']}</strong>
+			<td style="padding: 2px 0; text-align: center; border-bottom: 1px dotted #ccc;">
+				{item['qty']} {item['uom']}
 			</td>
 		</tr>"""
 	
 	table_info = f"<p><strong>Table:</strong> {kot_data['table_number']}</p>" if kot_data["table_number"] else ""
-	notes_section = f"<p><strong>Special Notes:</strong><br>{kot_data['special_notes']}</p>" if kot_data["special_notes"] else ""
+	notes_section = f"<p style='margin-top: 5px; font-style: italic;'>{kot_data['special_notes']}</p>" if kot_data["special_notes"] else ""
 	
 	kot_html = f"""
 	<!DOCTYPE html>
@@ -641,16 +716,19 @@ def generate_kot_html(order_data):
 		<meta charset="utf-8">
 		<title>KOT {kot_data['kot_number']}</title>
 		<style>
-			body {{ font-family: 'Courier New', monospace; width: 300px; margin: 0; padding: 10px; font-size: 12px; }}
-			.header {{ text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }}
-			.kot-title {{ font-size: 16px; font-weight: bold; margin: 0; }}
-			.kot-info {{ margin: 10px 0; }}
+			body {{ font-family: 'Courier New', monospace; width: 58mm; margin: 0; padding: 5px; font-size: 10px; line-height: 1.2; }}
+			.header {{ text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }}
+			.kot-title {{ font-size: 12px; font-weight: bold; margin: 2px 0; }}
+			.kot-info {{ margin: 8px 0; font-size: 9px; }}
 			.kot-info p {{ margin: 2px 0; }}
-			.items-table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
-			.items-table th {{ border-bottom: 2px solid #000; padding: 5px 0; text-align: left; }}
-			.items-table td {{ padding: 5px 0; vertical-align: top; }}
-			.footer {{ border-top: 2px solid #000; padding-top: 10px; margin-top: 15px; text-align: center; }}
-			.dashed-line {{ border-top: 1px dashed #000; margin: 10px 0; }}
+			.items-table {{ width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9px; }}
+			.items-table th {{ border-bottom: 1px solid #000; padding: 2px 0; text-align: left; font-weight: bold; font-size: 8px; }}
+			.items-table td {{ padding: 2px 0; vertical-align: top; }}
+			.footer {{ border-top: 1px solid #000; padding-top: 5px; margin-top: 8px; text-align: center; font-size: 9px; }}
+			.dashed-line {{ border-top: 1px dotted #000; margin: 5px 0; }}
+			@media print {{
+				body {{ margin: 0; padding: 2px; width: 58mm; }}
+			}}
 		</style>
 	</head>
 	<body>
@@ -660,7 +738,7 @@ def generate_kot_html(order_data):
 		</div>
 		
 		<div class="kot-info">
-			<p><strong>Order Type:</strong> {kot_data['order_type']}</p>
+			<p><strong>Type:</strong> {kot_data['order_type']}</p>
 			{table_info}
 			<p><strong>Customer:</strong> {kot_data['customer_name']}</p>
 			<p><strong>Date & Time:</strong> {kot_data['datetime']}</p>
@@ -671,8 +749,8 @@ def generate_kot_html(order_data):
 		<table class="items-table">
 			<thead>
 				<tr>
-					<th style="width: 70%;">ITEM</th>
-					<th style="width: 30%; text-align: center;">QTY</th>
+					<th style="width: 60%;">ITEM</th>
+					<th style="width: 40%; text-align: center;">QTY</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -858,6 +936,154 @@ def create_invoice_from_multiple_orders(sales_orders, pos_profile_name=None):
 	except Exception as e:
 		frappe.log_error(f"Error creating invoice from multiple orders: {str(e)}")
 		frappe.throw(_("Error creating invoice from orders: {0}").format(str(e)))
+
+@frappe.whitelist()
+def add_items_to_draft_order(order_name, items_data):
+	"""Add new items to a draft sales order (easier than submitted orders)"""
+	if isinstance(items_data, str):
+		items_data = json.loads(items_data)
+	
+	try:
+		# Debug logging
+		frappe.log_error(f"=== DEBUG: add_items_to_draft_order called ===", "Add Items to Draft Debug")
+		frappe.log_error(f"order_name parameter: {order_name}", "Add Items to Draft Debug")
+		frappe.log_error(f"items_data count: {len(items_data) if items_data else 0}", "Add Items to Draft Debug")
+		
+		# Check if the order exists
+		if not frappe.db.exists("Sales Order", order_name):
+			frappe.throw(_("Sales Order {0} not found").format(order_name))
+		
+		order = frappe.get_doc("Sales Order", order_name)
+		
+		if order.docstatus != 0:
+			frappe.throw(_("Can only add items to draft orders"))
+		
+		# Add new items to the draft order (check for existing items and increment qty)
+		for item_data in items_data:
+			# Look for existing item with same item_code, rate, and basic properties
+			existing_item = None
+			for existing in order.items:
+				if (existing.item_code == item_data.get("item_code") and 
+					existing.rate == item_data.get("rate") and
+					existing.uom == item_data.get("uom")):
+					existing_item = existing
+					break
+			
+			if existing_item:
+				# Increment quantity of existing item
+				existing_item.qty += item_data.get("qty", 1)
+				# Recalculate amount
+				existing_item.amount = existing_item.qty * existing_item.rate
+				frappe.log_error(f"Incremented qty for existing item {existing_item.item_code}: {existing_item.qty}", "Add Items to Draft Debug")
+			else:
+				# Add as new item
+				order.append("items", item_data)
+				frappe.log_error(f"Added new item {item_data.get('item_code')}", "Add Items to Draft Debug")
+		
+		# Recalculate totals and save
+		order.calculate_taxes_and_totals()
+		order.save()
+		
+		frappe.log_error(f"Successfully added items to draft Sales Order: {order.name}", "Add Items to Draft Success")
+		return order
+		
+	except Exception as e:
+		frappe.log_error(f"Error adding items to draft order {order_name}: {str(e)} - Type: {type(e).__name__}", "Add Items to Draft Error")
+		frappe.throw(_("Error adding items to order: {0}").format(str(e)))
+
+@frappe.whitelist()
+def add_items_to_existing_order(order_name, items_data):
+	"""Add new items to an existing submitted sales order"""
+	if isinstance(items_data, str):
+		items_data = json.loads(items_data)
+	
+	try:
+		# Extensive debug logging
+		frappe.log_error(f"=== DEBUG: add_items_to_existing_order called ===", "Add Items Debug")
+		frappe.log_error(f"order_name parameter: {order_name}", "Add Items Debug")
+		frappe.log_error(f"items_data count: {len(items_data) if items_data else 0}", "Add Items Debug")
+		
+		# Check if the order exists as Sales Order
+		if not frappe.db.exists("Sales Order", order_name):
+			frappe.log_error(f"Sales Order {order_name} does not exist in database", "Add Items Error")
+			# Check if it exists as Sales Invoice instead
+			if frappe.db.exists("Sales Invoice", order_name):
+				frappe.log_error(f"Document {order_name} exists as Sales Invoice, not Sales Order!", "Add Items Error")
+				frappe.throw(_("Document {0} is a Sales Invoice, not a Sales Order. Cannot add items to orders that have been converted to invoices.").format(order_name))
+			else:
+				frappe.log_error(f"Document {order_name} does not exist in any form", "Add Items Error")
+				frappe.throw(_("Sales Order {0} not found").format(order_name))
+		
+		# Log the attempt to fetch
+		frappe.log_error(f"Attempting to fetch Sales Order: {order_name}", "Add Items Debug")
+		
+		order = frappe.get_doc("Sales Order", order_name)
+		
+		frappe.log_error(f"Successfully fetched Sales Order: {order.name}, docstatus: {order.docstatus}, per_billed: {order.per_billed}", "Add Items Debug")
+		
+		if order.docstatus != 1:
+			frappe.throw(_("Can only add items to submitted orders"))
+		
+		if order.per_billed >= 100:
+			frappe.throw(_("Cannot add items to fully billed orders"))
+		
+		# Store existing items
+		existing_items = [item.as_dict() for item in order.items]
+		
+		# Cancel the order to allow modifications
+		order.cancel()
+		
+		# Keep existing items and add new ones
+		order.items = []
+		
+		# Re-add existing items and merge with new items
+		existing_items_dict = {}
+		for item_data in existing_items:
+			# Remove some auto-generated fields that might cause issues
+			item_data.pop('name', None)
+			item_data.pop('creation', None)
+			item_data.pop('modified', None)
+			item_data.pop('modified_by', None)
+			item_data.pop('owner', None)
+			item_data.pop('docstatus', None)
+			
+			# Create a key for grouping items (item_code + rate + uom)
+			item_key = f"{item_data.get('item_code')}_{item_data.get('rate')}_{item_data.get('uom')}"
+			existing_items_dict[item_key] = item_data
+		
+		# Process new items - merge with existing or add as new
+		for item_data in items_data:
+			item_key = f"{item_data.get('item_code')}_{item_data.get('rate')}_{item_data.get('uom')}"
+			
+			if item_key in existing_items_dict:
+				# Increment quantity of existing item
+				existing_items_dict[item_key]['qty'] += item_data.get('qty', 1)
+				# Recalculate amount
+				existing_items_dict[item_key]['amount'] = existing_items_dict[item_key]['qty'] * existing_items_dict[item_key]['rate']
+				frappe.log_error(f"Incremented qty for existing item {item_data.get('item_code')}: {existing_items_dict[item_key]['qty']}", "Add Items Debug")
+			else:
+				# Add as new item
+				existing_items_dict[item_key] = item_data
+				frappe.log_error(f"Added new item {item_data.get('item_code')}", "Add Items Debug")
+		
+		# Add all items (existing + new) to the order
+		for item_data in existing_items_dict.values():
+			order.append("items", item_data)
+		
+		# Recalculate and resubmit
+		order.calculate_taxes_and_totals()
+		order.save()
+		order.submit()
+		
+		frappe.log_error(f"Successfully added items to Sales Order: {order.name}", "Add Items Success")
+		return order
+		
+	except frappe.DoesNotExistError as e:
+		frappe.log_error(f"Sales Order {order_name} not found - DoesNotExistError: {str(e)}", "Add Items Error")
+		frappe.throw(_("Sales Order {0} not found").format(order_name))
+	except Exception as e:
+		frappe.log_error(f"Error adding items to order {order_name}: {str(e)} - Type: {type(e).__name__}", "Add Items Error")
+		frappe.throw(_("Error adding items to order: {0}").format(str(e)))
 
 @frappe.whitelist()
 def update_submitted_order_items(order_name, items_data):
@@ -1417,24 +1643,57 @@ def void_order_items(order_name, items_to_void):
 		if order_doc.docstatus != 0:
 			frappe.throw(_("Can only void items from draft orders"))
 		
-		# Create a list of items to keep (not void)
+		# Create a list of items to keep and track voided items
 		items_to_keep = []
 		voided_items = []
 		
 		for item in order_doc.items:
-			# Check if this item should be voided
-			should_void = False
+			# Check if this item should be partially or fully voided
+			void_qty = 0
+			void_item_data = None
+			
 			for void_item in items_to_void:
 				if item.idx == void_item.get("idx"):
-					should_void = True
+					void_qty = float(void_item.get("qty", 0))
+					void_item_data = void_item
+					break
+			
+			if void_qty > 0:
+				# Validate void quantity
+				if void_qty > item.qty:
+					frappe.throw(_("Cannot void {0} quantity of {1}. Only {2} available.").format(void_qty, item.item_name, item.qty))
+				
+				if void_qty == item.qty:
+					# Void entire item - don't add to items_to_keep
 					voided_items.append({
 						"item_name": item.item_name,
 						"qty": item.qty,
 						"amount": item.amount
 					})
-					break
-			
-			if not should_void:
+				else:
+					# Partial void - update quantity and add to items_to_keep
+					remaining_qty = item.qty - void_qty
+					void_amount = (item.amount / item.qty) * void_qty
+					remaining_amount = item.amount - void_amount
+					
+					# Update item with remaining quantity
+					item.qty = remaining_qty
+					item.amount = remaining_amount
+					
+					# Recalculate item-level totals
+					item.net_amount = remaining_amount
+					item.base_amount = remaining_amount
+					item.base_net_amount = remaining_amount
+					
+					items_to_keep.append(item)
+					
+					voided_items.append({
+						"item_name": item.item_name,
+						"qty": void_qty,
+						"amount": void_amount
+					})
+			else:
+				# Item not being voided - keep as is
 				items_to_keep.append(item)
 		
 		# Check if there are items left after voiding
@@ -1461,19 +1720,33 @@ def void_order_items(order_name, items_to_void):
 		# Reload the document to verify changes were saved
 		updated_doc = frappe.get_doc("Sales Order", order_name)
 		
+		# Generate KOT print for voided items
+		void_kot_data = None
+		try:
+			void_kot_data = generate_void_kot_print(updated_doc, voided_items)
+		except Exception as e:
+			frappe.log_error(f"Error generating void KOT: {str(e)}", "Void KOT Generation Error")
+		
 		# Log the void action
 		frappe.log_error(
 			f"Successfully voided {len(voided_items)} items from order {order_name}: {', '.join([item['item_name'] for item in voided_items])}. Remaining items: {len(updated_doc.items)}", 
 			"Restaurant Order Items Voided"
 		)
 		
-		return {
+		result = {
 			"status": "success",
 			"message": _("Items voided successfully"),
 			"voided_items": voided_items,
 			"remaining_items": len(updated_doc.items),
 			"updated_total": updated_doc.grand_total
 		}
+		
+		# Add KOT data to response if generated successfully
+		if void_kot_data:
+			result["void_kot_data"] = void_kot_data
+			result["print_void_kot"] = True
+			
+		return result
 		
 	except Exception as e:
 		frappe.db.rollback()

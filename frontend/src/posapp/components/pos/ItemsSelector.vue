@@ -143,6 +143,21 @@
 												color="primary"
 											></v-switch>
 											<v-switch
+												v-model="temp_show_available_qty"
+												:label="__('Show Available Qty')"
+												hide-details
+												density="compact"
+												color="primary"
+												class="mb-2"
+											></v-switch>
+											<v-switch
+												v-model="temp_show_uom"
+												:label="__('Show UOM')"
+												hide-details
+												density="compact"
+												color="primary"
+											></v-switch>
+											<v-switch
 												v-model="temp_enable_custom_items_per_page"
 												:label="__('Custom items per page')"
 												hide-details
@@ -274,11 +289,12 @@
 													</span>
 												</div>
 											</div>
-											<div class="card-item-stock">
-												<v-icon size="small" class="stock-icon"
+											<div v-if="show_available_qty || show_uom" class="card-item-stock">
+												<v-icon v-if="show_available_qty" size="small" class="stock-icon"
 													>mdi-package-variant</v-icon
 												>
 												<span
+													v-if="show_available_qty"
 													class="stock-amount"
 													:class="{
 														'negative-number': isNegative(item.actual_qty),
@@ -291,7 +307,7 @@
 														) || 0
 													}}
 												</span>
-												<span class="stock-uom">{{ item.stock_uom || "" }}</span>
+												<span v-if="show_uom" class="stock-uom">{{ item.stock_uom || "" }}</span>
 											</div>
 										</div>
 									</div>
@@ -359,6 +375,8 @@
 		</v-card>
 		<v-card class="cards mb-0 mt-3 dynamic-padding resizable" style="resize: vertical; overflow: auto">
 			<v-row no-gutters align="center" justify="center" class="dynamic-spacing-sm">
+				<!-- Hide the old item group dropdown since CategorySidebar handles it -->
+				<!-- 
 				<v-col cols="12" class="mb-2">
 					<v-select
 						:items="items_group"
@@ -369,6 +387,7 @@
 						v-model="item_group"
 					></v-select>
 				</v-col>
+				-->
 				<v-col cols="12" class="mb-2" v-if="pos_profile.posa_enable_price_list_dropdown !== false">
 					<v-text-field
 						density="compact"
@@ -515,6 +534,10 @@ export default {
 		temp_hide_qty_decimals: false,
 		hide_zero_rate_items: false,
 		temp_hide_zero_rate_items: false,
+		show_available_qty: false,
+		temp_show_available_qty: false,
+		show_uom: false,
+		temp_show_uom: false,
 		isDragging: false,
 		// Items per page configuration
 		enable_custom_items_per_page: false,
@@ -1152,6 +1175,8 @@ export default {
 				if (localCount > 0) {
 					await this.loadVisibleItems(true);
 					this.items_loaded = true;
+					// Emit groups data after items are loaded
+					this.emitItemGroupsData();
 					await this.verifyServerItemCount();
 					return;
 				}
@@ -1637,11 +1662,15 @@ export default {
 					}
 				});
 				saveItemGroups(groups);
+				// Emit groups data for CategorySidebar
+				this.emitItemGroupsData();
 			} else if (isOffline()) {
 				const cached = getCachedItemGroups();
 				cached.forEach((g) => {
 					this.items_group.push(g);
 				});
+				// Emit groups data for CategorySidebar
+				this.emitItemGroupsData();
 			} else {
 				const vm = this;
 				frappe.call({
@@ -1655,11 +1684,40 @@ export default {
 								groups.push(element.name);
 							});
 							saveItemGroups(groups);
+							// Emit groups data for CategorySidebar
+							vm.emitItemGroupsData();
 						}
 					},
 				});
 			}
 		},
+		
+		emitItemGroupsData() {
+			// Calculate item counts for each group
+			const groupsWithCounts = this.items_group.map(groupName => {
+				let item_count = 0;
+				let stock_value = 0;
+				
+				if (groupName === 'ALL') {
+					item_count = this.items.length;
+					stock_value = this.items.reduce((sum, item) => sum + (item.rate * item.actual_qty || 0), 0);
+				} else {
+					const groupItems = this.items.filter(item => item.item_group === groupName);
+					item_count = groupItems.length;
+					stock_value = groupItems.reduce((sum, item) => sum + (item.rate * item.actual_qty || 0), 0);
+				}
+				
+				return {
+					name: groupName,
+					item_count: item_count,
+					stock_value: stock_value
+				};
+			});
+			
+			// Emit to parent component
+			this.eventBus.emit('item_groups_data', groupsWithCounts);
+		},
+		
 		getItemsHeaders() {
 			const items_headers = [
 				{
@@ -1675,9 +1733,18 @@ export default {
 					key: "item_code",
 				},
 				{ title: __("Rate"), key: "rate", align: "start" },
-				{ title: __("Available QTY"), key: "actual_qty", align: "start" },
-				{ title: __("UOM"), key: "stock_uom", align: "start" },
 			];
+
+			// Conditionally add Available QTY column
+			if (this.show_available_qty) {
+				items_headers.push({ title: __("Available QTY"), key: "actual_qty", align: "start" });
+			}
+
+			// Conditionally add UOM column
+			if (this.show_uom) {
+				items_headers.push({ title: __("UOM"), key: "stock_uom", align: "start" });
+			}
+
 			if (!this.pos_profile.posa_display_item_code) {
 				items_headers.splice(1, 1);
 			}
@@ -2604,6 +2671,8 @@ export default {
 		toggleItemSettings() {
 			this.temp_hide_qty_decimals = this.hide_qty_decimals;
 			this.temp_hide_zero_rate_items = this.hide_zero_rate_items;
+			this.temp_show_available_qty = this.show_available_qty;
+			this.temp_show_uom = this.show_uom;
 			this.temp_enable_custom_items_per_page = this.enable_custom_items_per_page;
 			this.temp_items_per_page = this.items_per_page;
 			this.temp_force_server_items = !!(this.pos_profile && this.pos_profile.posa_force_server_items);
@@ -2615,6 +2684,8 @@ export default {
 		applyItemSettings() {
 			this.hide_qty_decimals = this.temp_hide_qty_decimals;
 			this.hide_zero_rate_items = this.temp_hide_zero_rate_items;
+			this.show_available_qty = this.temp_show_available_qty;
+			this.show_uom = this.temp_show_uom;
 			this.enable_custom_items_per_page = this.temp_enable_custom_items_per_page;
 			if (this.enable_custom_items_per_page) {
 				this.items_per_page = parseInt(this.temp_items_per_page) || 50;
@@ -2657,6 +2728,8 @@ export default {
 				const settings = {
 					hide_qty_decimals: this.hide_qty_decimals,
 					hide_zero_rate_items: this.hide_zero_rate_items,
+					show_available_qty: this.show_available_qty,
+					show_uom: this.show_uom,
 					enable_custom_items_per_page: this.enable_custom_items_per_page,
 					items_per_page: this.items_per_page,
 				};
@@ -2684,6 +2757,12 @@ export default {
 					}
 					if (typeof opts.hide_zero_rate_items === "boolean") {
 						this.hide_zero_rate_items = opts.hide_zero_rate_items;
+					}
+					if (typeof opts.show_available_qty === "boolean") {
+						this.show_available_qty = opts.show_available_qty;
+					}
+					if (typeof opts.show_uom === "boolean") {
+						this.show_uom = opts.show_uom;
 					}
 					if (typeof opts.enable_custom_items_per_page === "boolean") {
 						this.enable_custom_items_per_page = opts.enable_custom_items_per_page;
@@ -2877,6 +2956,11 @@ export default {
 		});
 		this.eventBus.on("update_customer", (data) => {
 			this.customer = data;
+		});
+		
+		// Listen for item group changes from CategorySidebar
+		this.eventBus.on("item_group_changed", (groupName) => {
+			this.item_group = groupName;
 		});
 
 		// Manually trigger a full item reload when requested

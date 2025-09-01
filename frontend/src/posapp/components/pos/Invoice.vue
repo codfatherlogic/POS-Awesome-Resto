@@ -321,7 +321,6 @@
 		<InvoiceSummary
 			:pos_profile="pos_profile"
 			:invoice_doc="invoice_doc"
-			:items="items"
 			:total_qty="total_qty"
 			:additional_discount="additional_discount"
 			:additional_discount_percentage="additional_discount_percentage"
@@ -333,14 +332,14 @@
 			:currencySymbol="currencySymbol"
 			:discount_percentage_offer_name="discount_percentage_offer_name"
 			:isNumber="isNumber"
+			:restaurant_add_items_context="restaurant_add_items_context"
 			@update:additional_discount="(val) => (additional_discount = val)"
 			@update:additional_discount_percentage="(val) => (additional_discount_percentage = val)"
 			@update_discount_umount="update_discount_umount"
-			@save-and-clear="save_and_clear_invoice"
+			@save-and-clear="handle_save_and_clear"
 			@load-drafts="get_draft_invoices"
 			@select-order="get_draft_orders"
 			@show-orders="show_restaurant_orders"
-			@print-kot="print_kot"
 			@submit-order="submit_restaurant_order"
 			@cancel-sale="cancel_dialog = true"
 			@open-returns="open_returns"
@@ -366,7 +365,6 @@ import invoiceComputed from "./invoiceComputed";
 import invoiceWatchers from "./invoiceWatchers";
 import offerMethods from "./invoiceOfferMethods";
 import shortcutMethods from "./invoiceShortcuts";
-import { printKOTHTML } from "../../plugins/kot_print.js";
 
 export default {
 	name: "POSInvoice",
@@ -444,6 +442,7 @@ export default {
 			selected_order_type: null, // Always start with null - no default selection
 			selected_table: null,
 			order_status: null,
+			restaurant_add_items_context: null, // Store context for updating existing orders
 		};
 	},
 
@@ -491,14 +490,15 @@ export default {
 
 			// Initialize selected columns if empty
 			if (!this.selected_columns || this.selected_columns.length === 0) {
-				// By default, select all required columns and those enabled in POS profile
+				// By default, select only required columns (Discount % and Discount Amount disabled by default)
 				this.selected_columns = this.available_columns
 					.filter((col) => {
 						if (col.required) return true;
-						if (col.key === "discount_value" && this.pos_profile.posa_display_discount_percentage)
-							return true;
-						if (col.key === "discount_amount" && this.pos_profile.posa_display_discount_amount)
-							return true;
+						// Disable discount columns by default - users can enable them via settings
+						// if (col.key === "discount_value" && this.pos_profile.posa_display_discount_percentage)
+						// 	return true;
+						// if (col.key === "discount_amount" && this.pos_profile.posa_display_discount_amount)
+						// 	return true;
 						return false;
 					})
 					.map((col) => col.key);
@@ -1043,7 +1043,7 @@ export default {
 
 			// If items already exist, update the invoice on the server so that
 			// the document currency and rates remain consistent
-			if (this.items && this.items.length) {
+			if (this.items.length) {
 				const doc = this.get_invoice_doc();
 				doc.currency = this.selected_currency;
 				doc.price_list_currency = priceListCurrency || this.pos_profile.currency;
@@ -1063,7 +1063,7 @@ export default {
 
 		async update_exchange_rate_on_server() {
 			if (this.conversion_rate) {
-				if (!this.items || !this.items.length) {
+				if (!this.items.length) {
 					this.sync_exchange_rate();
 					return;
 				}
@@ -1287,109 +1287,59 @@ export default {
 			this.eventBus.emit("open_restaurant_orders");
 		},
 
-		async print_kot() {
+		handle_save_and_clear() {
+			// Route to correct method based on context
+			if (this.pos_profile.posa_enable_restaurant_mode) {
+				if (this.restaurant_add_items_context && this.restaurant_add_items_context.is_updating_order) {
+					console.log("Routing to update_existing_order for order update");
+					this.update_existing_order();
+				} else {
+					console.log("Routing to create_new_restaurant_order for new restaurant order");
+					this.create_new_restaurant_order();
+				}
+			} else {
+				console.log("Routing to save_and_clear_invoice for regular POS");
+				this.save_and_clear_invoice();
+			}
+		},
+
+		async submit_restaurant_order() {
+			// Debug logging
+			console.log("=== SUBMIT RESTAURANT ORDER DEBUG ===");
+			console.log("restaurant_add_items_context:", this.restaurant_add_items_context);
+			console.log("is_updating_order:", this.restaurant_add_items_context?.is_updating_order);
+			console.log("original_order:", this.restaurant_add_items_context?.original_order);
+			console.log("==========================================");
+			
 			// Validate requirements first
 			if (!this.validate_restaurant_selection()) {
 				return;
 			}
 
-			if (!this.items || !this.items.length) {
+			if (!this.customer) {
 				this.eventBus.emit("show_message", {
-					title: __("Please add items to print KOT"),
+					title: __("Please select a customer"),
+					color: "error",
+				});
+				return;
+			}
+
+			if (!this.items.length) {
+				this.eventBus.emit("show_message", {
+					title: __("Please add items to the order"),
 					color: "error",
 				});
 				return;
 			}
 
 			try {
-				// Get the current order data for KOT
-				const doc = this.get_invoice_doc();
-				
-				// Add restaurant-specific data
-				if (this.selected_order_type) {
-					doc.restaurant_order_type = this.selected_order_type.name;
-				}
-				if (this.selected_table) {
-					doc.table_number = this.selected_table.table_number;
-				}
-
-				// Call backend to generate KOT HTML
-				const response = await frappe.call({
-					method: "posawesome.posawesome.api.restaurant_orders.generate_kot_html",
-					args: {
-						order_data: doc,
-					},
-				});
-
-				if (response.message) {
-					// Use KOT print function
-					printKOTHTML(response.message, this.pos_profile.posa_silent_print);
-
-					this.eventBus.emit("show_message", {
-						title: __("KOT sent to kitchen successfully"),
-						color: "success",
-					});
-				}
-			} catch (error) {
-				console.error("KOT Print Error:", error);
-				this.eventBus.emit("show_message", {
-					title: __("Failed to print KOT: {0}", [error.message || "Unknown error"]),
-					color: "error",
-				});
-			}
-		},
-
-		async submit_restaurant_order() {
-			// Validate requirements first
-			if (!this.validate_restaurant_selection()) {
-				return;
-			}
-
-		if (!this.customer) {
-			this.eventBus.emit("show_message", {
-				title: __("Please select a customer"),
-				color: "error",
-			});
-			return;
-		}
-
-		if (!this.items || !this.items.length) {
-			this.eventBus.emit("show_message", {
-				title: __("Please add items to the order"),
-				color: "error",
-			});
-			return;
-		}			try {
-				// First create/update the order
-				const doc = this.get_invoice_doc();
-				let order_doc;
-
-				if (doc.name) {
-					// Update existing order
-					order_doc = this.update_invoice(doc);
+				// Check if we're updating an existing order
+				if (this.restaurant_add_items_context && this.restaurant_add_items_context.is_updating_order) {
+					console.log("Taking update path...");
+					await this.update_existing_order();
 				} else {
-					// Create new restaurant order
-					order_doc = this.create_restaurant_order(doc);
-				}
-
-				if (order_doc && order_doc.name) {
-					// Submit the order
-					const r = await frappe.call({
-						method: "posawesome.posawesome.api.restaurant_orders.submit_restaurant_order",
-						args: {
-							order_data: order_doc,
-						},
-					});
-
-					if (r.message) {
-						this.eventBus.emit("show_message", {
-							title: __("Order {0} submitted successfully", [r.message.name]),
-							color: "success",
-						});
-						
-						// Clear the current invoice after successful submission
-						this.clear_invoice();
-					}
+					console.log("Taking create new order path...");
+					await this.create_new_restaurant_order();
 				}
 			} catch (error) {
 				console.error("Error submitting restaurant order:", error);
@@ -1397,6 +1347,106 @@ export default {
 					title: __("Error submitting order"),
 					color: "error",
 				});
+			}
+		},
+
+		async create_new_restaurant_order() {
+			const doc = this.get_invoice_doc();
+			
+			if (doc.name) {
+				// Update existing order (keep as draft)
+				const order_doc = this.update_invoice(doc);
+				
+				if (order_doc && order_doc.name) {
+					this.eventBus.emit("show_message", {
+						title: __("Order {0} updated successfully as draft", [order_doc.name]),
+						color: "success",
+					});
+					
+					// Clear the current invoice after successful update
+					this.clear_invoice();
+				}
+			} else {
+				// Create new restaurant order as draft (this already handles KOT printing)
+				const order_doc = this.create_restaurant_order(doc);
+				
+				if (order_doc && order_doc.name) {
+					this.eventBus.emit("show_message", {
+						title: __("Draft order {0} created successfully", [order_doc.name]),
+						color: "success",
+					});
+					
+					// Clear the current invoice after successful creation
+					this.clear_invoice();
+				}
+			}
+		},
+
+		async update_existing_order() {
+			const originalOrderName = this.restaurant_add_items_context.original_order;
+			
+			// Get the current items from the cart
+			const currentItems = this.items.map(item => ({
+				item_code: item.item_code,
+				item_name: item.item_name,
+				qty: item.qty,
+				rate: item.rate,
+				uom: item.uom,
+				warehouse: item.warehouse,
+				description: item.description,
+				discount_percentage: item.discount_percentage || 0,
+				discount_amount: item.discount_amount || 0
+			}));
+
+			console.log("Adding items to order:", originalOrderName, "with items:", currentItems);
+
+			// Call the appropriate API based on order status
+			// For draft orders, use the simpler draft API
+			// For submitted orders, use the more complex submitted API
+			const isDraftOrder = this.restaurant_add_items_context.order_status === 0;
+			const apiMethod = isDraftOrder 
+				? "posawesome.posawesome.api.restaurant_orders.add_items_to_draft_order"
+				: "posawesome.posawesome.api.restaurant_orders.add_items_to_existing_order";
+			
+			console.log(`Using API method: ${apiMethod} for ${isDraftOrder ? 'draft' : 'submitted'} order`);
+			
+			const response = await frappe.call({
+				method: apiMethod,
+				args: {
+					order_name: originalOrderName,
+					items_data: currentItems,
+				},
+			});
+
+			if (response.message) {
+				this.eventBus.emit("show_message", {
+					title: __("Added {0} new items to order {1} successfully", [currentItems.length, originalOrderName]),
+					color: "success",
+				});
+
+				// Print KOT for the new items
+				try {
+					const { printKot } = await import('../../plugins/kot_print.js');
+					const kotData = {
+						order_name: originalOrderName,
+						table_number: this.restaurant_add_items_context.table_number,
+						order_type: this.restaurant_add_items_context.order_type,
+						items: currentItems.map(item => ({
+							item_name: item.item_name,
+							qty: item.qty,
+							notes: item.notes || ''
+						})),
+						timestamp: frappe.datetime.now_datetime(),
+						is_additional: true // Flag to indicate this is additional items KOT
+					};
+					await printKot(kotData);
+				} catch (error) {
+					console.error("Error printing KOT for additional items:", error);
+				}
+
+				// Clear the current invoice and context after successful update
+				this.clear_invoice();
+				this.restaurant_add_items_context = null;
 			}
 		},
 
@@ -1443,6 +1493,83 @@ export default {
 			this.selected_order_type = null;
 			this.selected_table = null;
 			this.order_status = null;
+			this.restaurant_add_items_context = null;
+		},
+
+		async set_restaurant_context(context) {
+			try {
+				console.log("=== SET RESTAURANT CONTEXT DEBUG ===");
+				console.log("Incoming context:", context);
+				console.log("is_updating_order flag:", context.is_updating_order);
+				console.log("=====================================");
+				
+				// First, clear any existing cart to start fresh
+				this.clear_invoice();
+				
+				// Store the context AFTER clearing (so it doesn't get cleared)
+				this.restaurant_add_items_context = context;
+				console.log("Stored context after clear:", this.restaurant_add_items_context);
+				
+				// Set customer if provided
+				if (context.customer) {
+					// Emit update_customer event with proper format
+					this.eventBus.emit("update_customer", context.customer);
+				}
+				
+				// Get and set order type data
+				if (context.order_type) {
+					const orderTypes = await frappe.call({
+						method: "posawesome.posawesome.api.restaurant_orders.get_restaurant_order_types"
+					});
+					
+					if (orderTypes.message) {
+						const orderType = orderTypes.message.find(ot => ot.order_type_name === context.order_type);
+						if (orderType) {
+							// Set the order type directly
+							this.selected_order_type = orderType;
+							console.log("Order type set:", orderType);
+						}
+					}
+				}
+				
+				// Get and set table data if provided
+				if (context.table_number) {
+					const tables = await frappe.call({
+						method: "posawesome.posawesome.doctype.restaurant_table.restaurant_table.get_all_tables"
+					});
+					
+					if (tables.message) {
+						const table = tables.message.find(t => t.table_number === context.table_number);
+						if (table) {
+							// Add the table_display field that the component expects
+							table.table_display = table.table_name 
+								? `${table.table_number} - ${table.table_name}`
+								: table.table_number;
+							
+							// Set the table directly
+							this.selected_table = table;
+							console.log("Table set:", table);
+						} else {
+							console.warn("Table not found:", context.table_number);
+						}
+					}
+				}
+				
+				// Wait a bit for the components to update, then force refresh
+				setTimeout(() => {
+					this.$forceUpdate();
+				}, 100);
+				
+				console.log("Restaurant context set:", {
+					order_type: this.selected_order_type?.order_type_name,
+					table: this.selected_table?.table_number,
+					customer: context.customer_name,
+					is_updating_order: context.is_updating_order
+				});
+				
+			} catch (error) {
+				console.error("Error setting restaurant context:", error);
+			}
 		},
 	},
 
@@ -1521,6 +1648,9 @@ export default {
 		this.eventBus.on("validate_restaurant_selection", () => {
 			this.validate_restaurant_selection();
 		});
+		this.eventBus.on("set_restaurant_context", (context) => {
+			this.set_restaurant_context(context);
+		});
 		this.eventBus.on("load_invoice", (data) => {
 			this.load_invoice(data);
 		});
@@ -1592,7 +1722,7 @@ export default {
 			console.log("Invoice state after loading return:", {
 				invoiceType: this.invoiceType,
 				is_return: this.invoice_doc.is_return,
-				items: this.items ? this.items.length : 0,
+				items: this.items.length,
 				customer: this.customer,
 			});
 		});

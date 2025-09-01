@@ -1,20 +1,21 @@
 <template>
 	<v-row justify="center">
-		<v-dialog v-model="ordersDialog" max-width="1200px">
-			<v-card>
-				<v-card-title class="d-flex align-center">
-					<span class="text-h5 text-primary">{{ __("Restaurant Orders") }}</span>
+		<v-dialog v-model="ordersDialog" max-width="1400px" max-height="90vh">
+			<v-card style="height: 85vh;">
+				<v-card-title class="d-flex align-center pa-4">
+					<span class="text-h4 text-primary font-weight-bold">{{ __("Restaurant Orders") }}</span>
 					<v-spacer></v-spacer>
 					<v-btn
 						icon="mdi-close"
 						variant="text"
 						density="compact"
+						size="large"
 						@click="close_dialog"
 					></v-btn>
 				</v-card-title>
 				
-				<v-card-text class="pa-0">
-					<v-container>
+				<v-card-text class="pa-0" style="height: calc(85vh - 80px); overflow-y: auto;">
+					<v-container fluid class="pa-4">
 						<!-- Filters Row -->
 						<v-row class="mb-4">
 							<v-col cols="12" md="3">
@@ -149,66 +150,85 @@
 									</template>
 									
 									<template v-slot:item.actions="{ item }">
-										<!-- Reprint KOT Button - Available for all orders -->
-										<v-btn
-											size="small"
-											color="orange-darken-1"
-											variant="tonal"
-											@click="reprint_kot(item)"
-											class="mr-1"
-											:loading="kotReprintLoading[item.name]"
-										>
-											<v-icon size="small">mdi-silverware-fork-knife</v-icon>
-											{{ __("Reprint KOT") }}
-										</v-btn>
-										
-										<v-btn
-											v-if="canEdit(item)"
-											size="small"
-											color="primary"
-											variant="tonal"
-											@click="edit_order(item)"
-											class="mr-1"
-										>
-											<v-icon size="small">mdi-pencil</v-icon>
-											{{ __("Edit") }}
-										</v-btn>
-										
-										<!-- Void Items Button - Available for draft orders -->
-										<v-btn
-											v-if="canEdit(item)"
-											size="small"
-											color="warning"
-											variant="tonal"
-											@click="void_items(item)"
-											class="mr-1"
-										>
-											<v-icon size="small">mdi-close-circle</v-icon>
-											{{ __("Void Items") }}
-										</v-btn>
-										
-										<v-btn
-											v-if="canDelete(item)"
-											size="small"
-											color="error"
-											variant="tonal"
-											@click="delete_order(item)"
-											class="mr-1"
-										>
-											<v-icon size="small">mdi-delete</v-icon>
-											{{ __("Delete") }}
-										</v-btn>
-										
-										<v-btn
-											v-else-if="canCancel(item)"
-											size="small"
-											color="error"
-											variant="tonal"
-											@click="cancel_order(item)"
-										>
-											<v-icon size="small">mdi-cancel</v-icon>
-											{{ __("Cancel") }}
-										</v-btn>
+										<div class="d-flex flex-wrap gap-1">
+											<v-btn
+												v-if="canEdit(item)"
+												size="default"
+												color="primary"
+												variant="flat"
+												@click="edit_order(item)"
+												class="ma-1 text-caption"
+												min-width="90"
+											>
+												<v-icon start size="small">mdi-pencil</v-icon>
+												{{ __("Edit") }}
+											</v-btn>
+											
+											<v-btn
+												v-if="canAddItems(item)"
+												size="default"
+												color="success"
+												variant="flat"
+												@click="add_items_to_table(item)"
+												class="ma-1 text-caption"
+												min-width="110"
+											>
+												<v-icon start size="small">mdi-plus-circle</v-icon>
+												{{ __("Add Items") }}
+											</v-btn>
+											
+											<v-btn
+												v-if="canReprintKot(item)"
+												size="default"
+												color="info"
+												variant="flat"
+												@click="reprint_kot(item)"
+												class="ma-1 text-caption"
+												min-width="100"
+											>
+												<v-icon start size="small">mdi-printer</v-icon>
+												{{ __("Reprint KOT") }}
+											</v-btn>
+											
+											<v-btn
+												v-if="canVoidItems(item)"
+												size="default"
+												color="orange"
+												variant="flat"
+												@click="void_items(item)"
+												class="ma-1 text-caption"
+												min-width="100"
+											>
+												<v-icon start size="small">mdi-close-circle</v-icon>
+												{{ __("Void Items") }}
+											</v-btn>
+											
+											<v-btn
+												v-if="canDelete(item)"
+												size="default"
+												color="error"
+												variant="flat"
+												@click="delete_order(item)"
+												class="ma-1 text-caption"
+												min-width="80"
+											>
+												<v-icon start size="small">mdi-delete</v-icon>
+												{{ __("Delete") }}
+											</v-btn>
+											
+											<v-btn
+												v-else-if="canCancel(item)"
+												size="default"
+												color="error"
+												variant="flat"
+												@click="cancel_order(item)"
+												class="ma-1 text-caption"
+												min-width="80"
+											>
+												<v-icon start size="small">mdi-cancel</v-icon>
+												{{ __("Cancel") }}
+											</v-btn>
+										</div>
 									</template>
 
 									<!-- Expandable row content -->
@@ -358,12 +378,12 @@
 				</v-card-actions>
 			</v-card>
 		</v-dialog>
-
+		
 		<!-- Void Items Dialog -->
-		<v-dialog v-model="voidItemsDialog" max-width="800px">
+		<v-dialog v-model="voidItemsDialog" max-width="600px">
 			<v-card>
 				<v-card-title class="d-flex align-center">
-					<span class="text-h6 text-warning">{{ __("Void Items") }}</span>
+					<span class="text-h5 text-primary">{{ __("Void Items") }}</span>
 					<v-spacer></v-spacer>
 					<v-btn
 						icon="mdi-close"
@@ -374,54 +394,79 @@
 				</v-card-title>
 				
 				<v-card-text v-if="selectedOrderForVoid">
-					<v-container>
-						<v-row class="mb-4">
-							<v-col cols="12">
-								<v-alert type="warning" border="start" variant="tonal">
-									{{ __("Select items to void from order: ") + selectedOrderForVoid.name }}
-								</v-alert>
-							</v-col>
-						</v-row>
+					<v-alert type="warning" variant="tonal" class="mb-4">
+						<v-icon start>mdi-alert-triangle</v-icon>
+						{{ __("Select items and specify quantities to void from order {0}. Voided items will generate a KOT for kitchen notification.", [selectedOrderForVoid.name]) }}
+					</v-alert>
+					
+					<v-data-table
+						:headers="[
+							{ title: __('Select'), key: 'select', align: 'center', sortable: false, width: '80px' },
+							{ title: __('Item'), key: 'item_name', sortable: false },
+							{ title: __('Available Qty'), key: 'qty', align: 'center', sortable: false, width: '120px' },
+							{ title: __('Void Qty'), key: 'void_qty', align: 'center', sortable: false, width: '120px' },
+							{ title: __('Rate'), key: 'rate', align: 'end', sortable: false, width: '100px' },
+							{ title: __('Amount'), key: 'amount', align: 'end', sortable: false, width: '100px' }
+						]"
+						:items="voidItemsData"
+						density="compact"
+						class="elevation-1"
+						hide-default-footer
+					>
+						<template v-slot:item.select="{ item }">
+							<v-checkbox
+								v-model="item.selected"
+								hide-details
+								density="compact"
+								@change="updateVoidSelection(item)"
+							></v-checkbox>
+						</template>
 						
-						<v-row>
-							<v-col cols="12">
-								<v-data-table
-									:headers="voidItemHeaders"
-									:items="selectedOrderForVoid.items || []"
-									item-value="idx"
-									show-select
-									v-model="selectedItemsToVoid"
-									density="compact"
-									:loading="voidLoading"
-									return-object
-								>
-									<template v-slot:item.rate="{ item }">
-										{{ formatCurrency(item.rate) }}
-									</template>
-									<template v-slot:item.amount="{ item }">
-										{{ formatCurrency(item.amount) }}
-									</template>
-								</v-data-table>
-							</v-col>
-						</v-row>
-					</v-container>
+						<template v-slot:item.void_qty="{ item }">
+							<v-text-field
+								v-model.number="item.void_qty"
+								type="number"
+								:min="1"
+								:max="item.original_qty"
+								density="compact"
+								hide-details
+								style="width: 80px;"
+								:disabled="!item.selected"
+								@input="validateVoidQty(item)"
+							></v-text-field>
+						</template>
+						
+						<template v-slot:item.rate="{ item }">
+							{{ currencySymbol(selectedOrderForVoid.currency) }}{{ formatCurrency(item.rate) }}
+						</template>
+						<template v-slot:item.amount="{ item }">
+							{{ currencySymbol(selectedOrderForVoid.currency) }}{{ formatCurrency(item.amount) }}
+						</template>
+					</v-data-table>
+					
+					<div class="mt-4">
+						<v-alert v-if="getSelectedVoidItems().length === 0" type="info" variant="tonal">
+							{{ __("Please select items and specify quantities to void") }}
+						</v-alert>
+						<v-alert v-else type="success" variant="tonal">
+							{{ __("Selected {0} item(s) for voiding with total quantity: {1}", [getSelectedVoidItems().length, getTotalVoidQty()]) }}
+						</v-alert>
+					</div>
 				</v-card-text>
 				
 				<v-card-actions>
 					<v-spacer></v-spacer>
-					<v-btn
-						color="grey"
-						variant="text"
+					<v-btn 
+						color="error" 
 						@click="voidItemsDialog = false"
 					>
 						{{ __("Cancel") }}
 					</v-btn>
 					<v-btn
 						color="warning"
-						variant="flat"
-						@click="confirmVoidItems(selectedOrderForVoid, selectedItemsToVoid)"
 						:loading="voidLoading"
-						:disabled="!selectedItemsToVoid || selectedItemsToVoid.length === 0"
+						:disabled="getSelectedVoidItems().length === 0"
+						@click="confirmVoidItems(selectedOrderForVoid, getSelectedVoidItems())"
 					>
 						{{ __("Void Selected Items") }}
 					</v-btn>
@@ -437,52 +482,21 @@ import format from "../../format";
 export default {
 	mixins: [format],
 	data() {
-		return {
-			ordersDialog: false,
-			pos_profile: {},
-			pos_opening_shift: null,
-			selected: [],
-			orders_data: [],
-			filtered_orders: [],
-			loading: false,
-			converting: false,
-			multiSelectMode: false,
-			expanded: [], // Track expanded rows
-			filter_order_type: null,
-			filter_status: null,
-			filter_date: null,
-			search_text: "",
-			kotReprintLoading: {}, // Track loading state for each order's KOT reprint
-			voidItemsDialog: false,
-			selectedOrderForVoid: null,
-			voidLoading: false,
-			selectedItemsToVoid: [],
-			voidItemHeaders: [
-				{
-					title: __("Item"),
-					key: "item_name",
-					align: "start",
-					sortable: false,
-				},
-				{
-					title: __("Qty"),
-					key: "qty",
-					align: "center",
-					sortable: false,
-				},
-				{
-					title: __("Rate"),
-					key: "rate",
-					align: "end",
-					sortable: false,
-				},
-				{
-					title: __("Amount"),
-					key: "amount",
-					align: "end",
-					sortable: false,
-				},
-			],
+	return {
+		ordersDialog: false,
+		pos_profile: {},
+		pos_opening_shift: null,
+		selected: [],
+		orders_data: [],
+		filtered_orders: [],
+		loading: false,
+		converting: false,
+		multiSelectMode: false,
+		expanded: [], // Track expanded rows
+		filter_order_type: null,
+		filter_status: null,
+		filter_date: null,
+		search_text: "",
 			headers: [
 				{
 					title: __("Order"),
@@ -540,6 +554,12 @@ export default {
 				{ title: __("Billed"), value: "Billed" },
 				{ title: __("Cancelled"), value: "Cancelled" },
 			],
+			// Void Items Dialog Data
+			voidItemsDialog: false,
+			selectedOrderForVoid: null,
+			selectedItemsToVoid: [],
+			voidItemsData: [], // Enhanced void items data with selection and quantity controls
+			voidLoading: false,
 		};
 	},
 	computed: {
@@ -557,16 +577,6 @@ export default {
 			if (this.ordersDialog) {
 				this.fetch_orders();
 			}
-		},
-		selectedItemsToVoid: {
-			handler(newVal, oldVal) {
-				console.log("selectedItemsToVoid changed:", {
-					new: newVal,
-					old: oldVal,
-					count: newVal?.length || 0
-				});
-			},
-			deep: true
 		},
 	},
 	methods: {
@@ -766,6 +776,12 @@ export default {
 
 		canDelete(order) {
 			return order.docstatus === 0; // Only draft orders can be deleted
+		},
+
+		canAddItems(order) {
+			// Allow adding items to both draft and submitted orders that have a table (dine-in orders)
+			// This covers both scenarios: ongoing orders (draft) and completed orders (submitted)
+			return (order.docstatus === 0 || order.docstatus === 1) && order.table_number;
 		},
 
 		canConvertMultipleToInvoice() {
@@ -1115,6 +1131,41 @@ export default {
 			}
 		},
 
+		async add_items_to_table(order) {
+			try {
+				console.log("Adding items to table for order:", order.name);
+				
+				// Close the restaurant orders dialog first
+				this.close_dialog();
+				
+				// Set the order type and table information in the POS interface
+				// This will prepare the POS for updating the existing order
+				this.eventBus.emit("set_restaurant_context", {
+					order_type: order.order_type_name,
+					table_number: order.table_number,
+					customer: order.customer,
+					customer_name: order.customer_name,
+					original_order: order.name,
+					order_status: order.docstatus, // Pass the order status for API selection
+					is_updating_order: true // Flag to indicate we're updating existing order
+				});
+				
+				// Show success message with instructions
+				this.eventBus.emit("show_message", {
+					title: __("Ready to add items to {0}. Select items and click 'Update Order' to add items to existing order with KOT print.", [order.table_number]),
+					color: "info",
+					timeout: 6000
+				});
+				
+			} catch (error) {
+				console.error("Failed to prepare additional items order", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error preparing additional order"),
+					color: "error",
+				});
+			}
+		},
+
 		async cancel_order(order) {
 			// Show confirmation dialog
 			const confirmed = await new Promise((resolve) => {
@@ -1196,41 +1247,54 @@ export default {
 			return frappe.datetime.str_to_user(date);
 		},
 
+		// Void Items Methods
+		canVoidItems(order) {
+			// Only allow voiding items from draft orders with items
+			return order.docstatus === 0 && order.items && order.items.length > 0;
+		},
+
+		// KOT Reprint Methods
+		canReprintKot(order) {
+			// Allow reprint KOT for any order with items (draft or submitted)
+			return order.items && order.items.length > 0;
+		},
+
 		async reprint_kot(order) {
-			// Set loading state for this specific order
-			this.$set(this.kotReprintLoading, order.name, true);
-			
 			try {
 				console.log("Reprinting KOT for order:", order.name);
 				
-				// Call the KOT generation API to get HTML for reprint
-				const response = await frappe.call({
+				const r = await frappe.call({
 					method: "posawesome.posawesome.api.restaurant_orders.reprint_kot",
 					args: {
-						order_name: order.name,
-					},
+						order_name: order.name
+					}
 				});
-
-				if (response.message) {
-					// Import the KOT print module dynamically
-					const kotPrintModule = await import("../../plugins/kot_print.js");
+				
+				if (r.message) {
+					// Open KOT in new window for printing
+					const printWindow = window.open('', '_blank');
+					printWindow.document.write(r.message);
+					printWindow.document.close();
+					printWindow.focus();
+					printWindow.print();
 					
-					// Print the KOT HTML directly
-					await kotPrintModule.printKOTHTML(response.message);
+					// Close the print window after printing
+					setTimeout(() => {
+						printWindow.close();
+					}, 1000);
 					
 					this.eventBus.emit("show_message", {
-						title: __("KOT reprinted successfully"),
-						color: "success",
+						title: __("KOT reprinted successfully for order {0}", [order.name]),
+						color: "success"
 					});
 				}
+				
 			} catch (error) {
 				console.error("Error reprinting KOT:", error);
 				this.eventBus.emit("show_message", {
-					title: __("Error reprinting KOT: ") + (error.message || error),
-					color: "error",
+					title: __("Error reprinting KOT: {0}", [error.message || "Unknown error"]),
+					color: "error"
 				});
-			} finally {
-				this.$set(this.kotReprintLoading, order.name, false);
 			}
 		},
 
@@ -1238,28 +1302,27 @@ export default {
 			console.log("Opening void items dialog for order:", order);
 			
 			try {
-				// Fetch the complete order data with items
-				const orderResult = await frappe.call({
+				// Fetch full order details including items
+				const r = await frappe.call({
 					method: "frappe.client.get",
 					args: {
 						doctype: "Sales Order",
-						name: order.name,
-					},
+						name: order.name
+					}
 				});
-
-				if (orderResult.message) {
-					this.selectedOrderForVoid = orderResult.message;
-					this.selectedItemsToVoid = []; // Clear previous selection
-					this.voidLoading = false; // Reset loading state
+				
+				if (r.message) {
+					this.selectedOrderForVoid = r.message;
+					this.selectedItemsToVoid = [];
+					this.voidItemsData = this.prepareVoidItemsData(r.message.items || []);
+					this.voidLoading = false;
 					this.voidItemsDialog = true;
-				} else {
-					throw new Error("Failed to fetch order details");
 				}
 			} catch (error) {
 				console.error("Error fetching order for voiding:", error);
 				this.eventBus.emit("show_message", {
 					title: __("Error fetching order details"),
-					color: "error",
+					color: "error"
 				});
 			}
 		},
@@ -1273,85 +1336,75 @@ export default {
 				if (!itemsToVoid || itemsToVoid.length === 0) {
 					this.eventBus.emit("show_message", {
 						title: __("Please select items to void"),
-						color: "warning",
+						color: "warning"
 					});
 					return;
 				}
 				
-				// Map selected items to their idx values for backend processing
-				const itemsData = itemsToVoid.map(item => ({
+				// Map items for API call with void quantities
+				const items_to_void = itemsToVoid.map(item => ({
 					idx: item.idx,
 					item_code: item.item_code,
-					qty: item.qty
+					qty: item.qty // This is now the void_qty from the selection
 				}));
 				
-				// Call backend to void specific items
-				const response = await frappe.call({
+				const r = await frappe.call({
 					method: "posawesome.posawesome.api.restaurant_orders.void_order_items",
 					args: {
 						order_name: order.name,
-						items_to_void: itemsData,
-					},
+						items_to_void: items_to_void
+					}
 				});
-
-				if (response.message) {
+				
+				if (r.message) {
+					// Show success message
 					this.eventBus.emit("show_message", {
 						title: __("Items voided successfully"),
-						color: "success",
+						color: "success"
 					});
 					
-					// Clear expanded rows to force fresh data load when expanded again
+					// Handle KOT printing if available
+					if (r.message.print_void_kot && r.message.void_kot_data) {
+						console.log("Void KOT data:", r.message.void_kot_data);
+						
+						// Auto-print void KOT without confirmation
+						await this.printVoidKot(r.message.void_kot_data);
+					}
+					
+					// Reset dialog
 					this.expanded = [];
-					
-					// Clear the cached order data to ensure fresh fetch
 					this.selectedOrderForVoid = null;
-					
-					// Force a complete refresh of the orders list
+					this.voidItemsData = [];
+					this.voidItemsDialog = false;
 					await this.fetch_orders();
 					
-					// Also update the order in our local data if it exists
+					// Update the specific order in the list
 					const orderIndex = this.orders_data.findIndex(o => o.name === order.name);
 					if (orderIndex !== -1) {
-						// Fetch the updated order data
 						try {
-							const updatedOrderResult = await frappe.call({
+							const updated_order = await frappe.call({
 								method: "frappe.client.get",
 								args: {
 									doctype: "Sales Order",
-									name: order.name,
-								},
+									name: order.name
+								}
 							});
-							if (updatedOrderResult.message) {
-								// Update the order in our local data array
+							
+							if (updated_order.message) {
 								this.orders_data[orderIndex] = {
 									...this.orders_data[orderIndex],
-									items: updatedOrderResult.message.items,
-									grand_total: updatedOrderResult.message.grand_total,
-									net_total: updatedOrderResult.message.net_total,
+									items: updated_order.message.items,
+									grand_total: updated_order.message.grand_total,
+									net_total: updated_order.message.net_total
 								};
-								// Refilter to update the display
 								this.filter_orders();
 							}
-						} catch (fetchError) {
-							console.log("Could not update local order data:", fetchError);
+						} catch (update_error) {
+							console.error("Error updating order in list:", update_error);
 						}
 					}
 					
-					// Force refresh the Sales Order document if it's open in Frappe
-					try {
-						if (window.frappe && window.frappe.get_route && window.frappe.get_route()[0] === 'Form' && window.frappe.get_route()[1] === 'Sales Order') {
-							// If a Sales Order form is currently open, refresh it
-							const current_route = window.frappe.get_route();
-							if (current_route[2] === order.name) {
-								// This is the same order that was voided, refresh the form
-								window.frappe.set_route('Form', 'Sales Order', order.name);
-							}
-						}
-					} catch (refresh_error) {
-						console.log("Could not refresh Sales Order form:", refresh_error);
-					}
-					
-					// Close the void dialog
+					// Close dialog
 					this.voidItemsDialog = false;
 					this.selectedOrderForVoid = null;
 					this.selectedItemsToVoid = [];
@@ -1360,10 +1413,75 @@ export default {
 				console.error("Error voiding items:", error);
 				this.eventBus.emit("show_message", {
 					title: __("Error voiding items: ") + (error.message || error),
-					color: "error",
+					color: "error"
 				});
 			} finally {
 				this.voidLoading = false;
+				this.selectedItemsToVoid = [];
+				this.voidItemsData = [];
+			}
+		},
+
+		// Enhanced Void Items Methods
+		prepareVoidItemsData(orderItems) {
+			// Transform order items into void items data with selection controls
+			return orderItems.map(item => ({
+				...item,
+				original_qty: item.qty,
+				void_qty: 1, // Default void quantity
+				selected: false
+			}));
+		},
+
+		updateVoidSelection(item) {
+			// When item is selected/deselected, reset void quantity
+			if (item.selected) {
+				item.void_qty = Math.min(1, item.original_qty);
+			} else {
+				item.void_qty = 1;
+			}
+		},
+
+		validateVoidQty(item) {
+			// Ensure void quantity is within valid range
+			if (item.void_qty < 1) {
+				item.void_qty = 1;
+			} else if (item.void_qty > item.original_qty) {
+				item.void_qty = item.original_qty;
+			}
+		},
+
+		getSelectedVoidItems() {
+			// Get items that are selected for voiding with their void quantities
+			return this.voidItemsData.filter(item => item.selected && item.void_qty > 0).map(item => ({
+				idx: item.idx,
+				item_code: item.item_code,
+				item_name: item.item_name,
+				qty: item.void_qty,
+				rate: item.rate,
+				amount: item.void_qty * item.rate
+			}));
+		},
+
+		getTotalVoidQty() {
+			// Calculate total quantity being voided
+			return this.getSelectedVoidItems().reduce((total, item) => total + item.qty, 0);
+		},
+
+		async printVoidKot(voidKotData) {
+			try {
+				// Import the KOT print utility
+				const { printVoidKot } = await import("../../plugins/kot_print.js");
+				
+				// Use the utility function to print
+				printVoidKot(voidKotData, { autoPrint: true });
+				
+			} catch (error) {
+				console.error("Error printing void KOT:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error printing void KOT"),
+					color: "error"
+				});
 			}
 		},
 	},

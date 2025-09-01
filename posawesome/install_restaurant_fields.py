@@ -68,18 +68,6 @@ def install_restaurant_fields():
     ):
         created_count += 1
     
-    if create_custom_field(
-        doctype="POS Profile", 
-        fieldname="posa_auto_print_kot",
-        fieldtype="Check",
-        label="Auto Print KOT on Make Order",
-        insert_after="posa_enable_restaurant_mode",
-        description="Automatically print Kitchen Order Ticket when order is created",
-        default="0",
-        depends_on="eval:doc.posa_enable_restaurant_mode"
-    ):
-        created_count += 1
-    
     # Sales Order Fields
     print("\n2. Creating Sales Order fields...")
     

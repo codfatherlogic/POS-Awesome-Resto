@@ -21,6 +21,18 @@
   },
   {
     "doctype": "Custom Field",
+    "name": "POS Profile-posa_auto_print_kot",
+    "dt": "POS Profile",
+    "fieldname": "posa_auto_print_kot",
+    "fieldtype": "Check",
+    "label": "Auto Print KOT",
+    "description": "Automatically print Kitchen Order Ticket when restaurant orders are created",
+    "default": "0",
+    "depends_on": "eval:doc.posa_enable_restaurant_mode",
+    "insert_after": "posa_enable_restaurant_mode"
+  },
+  {
+    "doctype": "Custom Field",
     "name": "Sales Order-restaurant_order_type",
     "dt": "Sales Order",
     "fieldname": "restaurant_order_type",

@@ -8,6 +8,7 @@
 			:loading-progress="loadingProgress"
 			:loading-active="loadingActive"
 			:loading-message="loadingMessage"
+			:company="company"
 			@nav-click="handleNavClick"
 			@go-desk="goDesk"
 			@show-offline-invoices="showOfflineInvoices = true"
@@ -202,7 +203,7 @@ export default {
 				{ text: "POS", icon: "mdi-network-pos" },
 				{ text: "Payments", icon: "mdi-credit-card" },
 			],
-			company: "POS Awesome",
+			company: "",
 			companyImg: posLogo,
 			showAboutDialog: false,
 			showOfflineInvoices: false,
@@ -243,6 +244,9 @@ export default {
 			// Initialize company info from Frappe boot data
 			if (frappe.boot && frappe.boot.sysdefaults && frappe.boot.sysdefaults.company) {
 				this.company = frappe.boot.sysdefaults.company;
+			} else {
+				// Fallback to a generic name if no company is set
+				this.company = "POS System";
 			}
 
 			// Try multiple sources for company logo

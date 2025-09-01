@@ -1,58 +1,21 @@
-// Kitchen Order Ticket (KOT) Print Utilities
-
-export function printKot(kotData, options = {}) {
-    const printContent = generateKotPrintHtml(kotData, options);
-    
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    
-    // Auto-print if specified
-    if (options.autoPrint !== false) {
-        printWindow.print();
-        
-        // Close the print window after printing
-        setTimeout(() => {
-            printWindow.close();
-        }, 1000);
-    }
-    
-    return printWindow;
+function r(t, o = {}) {
+  const i = n(t, o), e = window.open("", "_blank");
+  return e.document.write(i), e.document.close(), e.focus(), o.autoPrint !== !1 && (e.print(), setTimeout(() => {
+    e.close();
+  }, 1e3)), e;
 }
-
-export function printVoidKot(voidKotData, options = {}) {
-    const printContent = generateVoidKotPrintHtml(voidKotData, options);
-    
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    
-    // Auto-print if specified
-    if (options.autoPrint !== false) {
-        printWindow.print();
-        
-        // Close the print window after printing
-        setTimeout(() => {
-            printWindow.close();
-        }, 1000);
-    }
-    
-    return printWindow;
+function s(t, o = {}) {
+  const i = d(t, o), e = window.open("", "_blank");
+  return e.document.write(i), e.document.close(), e.focus(), o.autoPrint !== !1 && (e.print(), setTimeout(() => {
+    e.close();
+  }, 1e3)), e;
 }
-
-// Legacy function name for backward compatibility
-export function printKOTHTML(kotData, options = {}) {
-    return printKot(kotData, options);
-}
-
-function generateKotPrintHtml(kotData, options = {}) {
-    return `
+function n(t, o = {}) {
+  return `
     <!DOCTYPE html>
     <html>
     <head>
-        <title>KOT - ${kotData.kot_number}</title>
+        <title>KOT - ${t.kot_number}</title>
         <style>
             body { font-family: 'Courier New', monospace; width: 58mm; margin: 0; padding: 5px; font-size: 10px; line-height: 1.2; }
             .kot-header { text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
@@ -72,14 +35,14 @@ function generateKotPrintHtml(kotData, options = {}) {
     <body>
         <div class="kot-header">
             <div class="kot-title">KITCHEN ORDER TICKET</div>
-            <div>${kotData.kot_number}</div>
-            <div>${kotData.datetime}</div>
+            <div>${t.kot_number}</div>
+            <div>${t.datetime}</div>
         </div>
         
         <div class="kot-info">
-            <div><strong>Type:</strong> ${kotData.order_type}</div>
-            ${kotData.table_number ? `<div><strong>Table:</strong> ${kotData.table_number}</div>` : ''}
-            <div><strong>Customer:</strong> ${kotData.customer_name}</div>
+            <div><strong>Type:</strong> ${t.order_type}</div>
+            ${t.table_number ? `<div><strong>Table:</strong> ${t.table_number}</div>` : ""}
+            <div><strong>Customer:</strong> ${t.customer_name}</div>
         </div>
         
         <table class="items-table">
@@ -90,30 +53,29 @@ function generateKotPrintHtml(kotData, options = {}) {
                 </tr>
             </thead>
             <tbody>
-                ${kotData.items.map(item => `
+                ${t.items.map((i) => `
                     <tr>
-                        <td>${item.item_name}</td>
-                        <td style="text-align: center;">${item.qty} ${item.uom}</td>
+                        <td>${i.item_name}</td>
+                        <td style="text-align: center;">${i.qty} ${i.uom}</td>
                     </tr>
-                `).join('')}
+                `).join("")}
             </tbody>
         </table>
         
         <div class="kot-footer">
-            <div><strong>Total Items: ${kotData.total_items}</strong></div>
-            ${kotData.special_notes ? `<div style="margin-top: 5px; font-style: italic;">${kotData.special_notes}</div>` : ''}
+            <div><strong>Total Items: ${t.total_items}</strong></div>
+            ${t.special_notes ? `<div style="margin-top: 5px; font-style: italic;">${t.special_notes}</div>` : ""}
         </div>
     </body>
     </html>
     `;
 }
-
-function generateVoidKotPrintHtml(voidKotData, options = {}) {
-    return `
+function d(t, o = {}) {
+  return `
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Void KOT - ${voidKotData.kot_number}</title>
+        <title>Void KOT - ${t.kot_number}</title>
         <style>
             body { font-family: 'Courier New', monospace; width: 58mm; margin: 0; padding: 5px; font-size: 10px; line-height: 1.2; }
             .kot-header { text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
@@ -134,15 +96,15 @@ function generateVoidKotPrintHtml(voidKotData, options = {}) {
     <body>
         <div class="kot-header">
             <div class="kot-title">*** VOID KOT ***</div>
-            <div>${voidKotData.kot_number}</div>
-            <div>${voidKotData.datetime}</div>
+            <div>${t.kot_number}</div>
+            <div>${t.datetime}</div>
         </div>
         
         <div class="kot-info">
-            <div><strong>Order #:</strong> ${voidKotData.order_number}</div>
-            <div><strong>Type:</strong> ${voidKotData.order_type}</div>
-            ${voidKotData.table_number ? `<div><strong>Table:</strong> ${voidKotData.table_number}</div>` : ''}
-            <div><strong>Customer:</strong> ${voidKotData.customer_name}</div>
+            <div><strong>Order #:</strong> ${t.order_number}</div>
+            <div><strong>Type:</strong> ${t.order_type}</div>
+            ${t.table_number ? `<div><strong>Table:</strong> ${t.table_number}</div>` : ""}
+            <div><strong>Customer:</strong> ${t.customer_name}</div>
         </div>
         
         <table class="items-table">
@@ -153,21 +115,25 @@ function generateVoidKotPrintHtml(voidKotData, options = {}) {
                 </tr>
             </thead>
             <tbody>
-                ${voidKotData.voided_items.map(item => `
+                ${t.voided_items.map((i) => `
                     <tr>
-                        <td>${item.item_name}</td>
-                        <td style="text-align: center;" class="void-status">${item.qty} VOID</td>
+                        <td>${i.item_name}</td>
+                        <td style="text-align: center;" class="void-status">${i.qty} VOID</td>
                     </tr>
-                `).join('')}
+                `).join("")}
             </tbody>
         </table>
         
         <div class="kot-footer">
-            <div><strong>Total Voided Items: ${voidKotData.total_voided_items}</strong></div>
-            <div class="void-status">${voidKotData.special_notes}</div>
-            <div>Reason: ${voidKotData.void_reason}</div>
+            <div><strong>Total Voided Items: ${t.total_voided_items}</strong></div>
+            <div class="void-status">${t.special_notes}</div>
+            <div>Reason: ${t.void_reason}</div>
         </div>
     </body>
     </html>
     `;
 }
+export {
+  r as printKot,
+  s as printVoidKot
+};

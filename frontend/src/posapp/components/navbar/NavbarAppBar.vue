@@ -13,8 +13,7 @@
 			<v-toolbar-title @click="$emit('go-desk')"
 				:class="['text-h6 font-weight-bold text-primary navbar-title', isRtl ? 'rtl-title' : 'ltr-title']"
 				style="cursor: pointer; text-decoration: none">
-				<span class="font-weight-light navbar-title-light">{{ __("POS") }}</span><span
-					class="navbar-title-bold">{{ __("Awesome") }}</span>
+				{{ company }}
 			</v-toolbar-title>
 		</div>
 
@@ -112,6 +111,10 @@ export default {
 		loadingMessage: {
 			type: String,
 			default: 'Loading app data...',
+		},
+		company: {
+			type: String,
+			default: 'POS System',
 		},
 	},
 	computed: {

@@ -183,21 +183,11 @@ export default {
 
 	// Load an invoice (or return invoice) from data, set all fields accordingly
 	async load_invoice(data = {}) {
-		console.log("=== LOAD_INVOICE START ===");
 		console.log("load_invoice called with data:", {
 			is_return: data.is_return,
 			return_against: data.return_against,
 			customer: data.customer,
 			items_count: data.items ? data.items.length : 0,
-			source_orders: data.source_orders,
-			multi_order_names: data.multi_order_names,
-			is_multi_order_consolidation: data.is_multi_order_consolidation
-		});
-
-		console.log("Raw data multi-order fields before clear_invoice:", {
-			source_orders: data.source_orders,
-			multi_order_names: data.multi_order_names,
-			is_multi_order_consolidation: data.is_multi_order_consolidation
 		});
 
 		this.clear_invoice();
@@ -217,16 +207,7 @@ export default {
 			this.invoiceTypes = ["Return"];
 		}
 
-		// CRITICAL: Deep clone the data to prevent reference issues
-		this.invoice_doc = JSON.parse(JSON.stringify(data));
-		console.log("=== DEBUG: After deep cloning to this.invoice_doc ===");
-		console.log("this.invoice_doc now contains:", {
-			name: this.invoice_doc.name,
-			doctype: this.invoice_doc.doctype,
-			source_orders: this.invoice_doc.source_orders,
-			multi_order_names: this.invoice_doc.multi_order_names,
-			is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation
-		});
+		this.invoice_doc = data;
 		this.items = data.items || [];
 		this.packed_items = data.packed_items || [];
 		console.log("Items set:", this.items.length, "items");
@@ -557,18 +538,7 @@ export default {
 			console.log("Original this.invoice_doc:", {
 				name: this.invoice_doc.name,
 				doctype: this.invoice_doc.doctype,
-				docstatus: this.invoice_doc.docstatus,
-				source_orders: this.invoice_doc.source_orders,
-				multi_order_names: this.invoice_doc.multi_order_names,
-				is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation
-			});
-			console.log("Copied doc after spread:", {
-				name: doc.name,
-				doctype: doc.doctype,
-				docstatus: doc.docstatus,
-				source_orders: doc.source_orders,
-				multi_order_names: doc.multi_order_names,
-				is_multi_order_consolidation: doc.is_multi_order_consolidation
+				docstatus: this.invoice_doc.docstatus
 			});
 		}
 
@@ -854,52 +824,6 @@ export default {
 				doc.expected_preparation_time = this.selected_order_type.default_preparation_time;
 			}
 		}
-
-		// CRITICAL: Preserve multi-order consolidation fields
-		console.log("=== INVOICE_ITEM_METHODS get_invoice_doc - Multi-order field preservation ===");
-		console.log("this.invoice_doc multi-order fields:", {
-			source_orders: this.invoice_doc.source_orders,
-			multi_order_names: this.invoice_doc.multi_order_names,
-			is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation,
-			is_multi_order_edit: this.invoice_doc.is_multi_order_edit
-		});
-		
-		if (this.invoice_doc.source_orders) {
-			doc.source_orders = this.invoice_doc.source_orders;
-			console.log("Preserved source_orders:", doc.source_orders);
-		} else {
-			console.log("WARNING: source_orders not found in this.invoice_doc");
-		}
-		if (this.invoice_doc.multi_order_names) {
-			doc.multi_order_names = this.invoice_doc.multi_order_names;
-			console.log("Preserved multi_order_names:", doc.multi_order_names);
-		} else {
-			console.log("WARNING: multi_order_names not found in this.invoice_doc");
-		}
-		if (this.invoice_doc.is_multi_order_consolidation) {
-			doc.is_multi_order_consolidation = this.invoice_doc.is_multi_order_consolidation;
-			console.log("Preserved is_multi_order_consolidation:", doc.is_multi_order_consolidation);
-		} else {
-			console.log("WARNING: is_multi_order_consolidation not found in this.invoice_doc");
-		}
-		if (this.invoice_doc.is_multi_order_edit) {
-			doc.is_multi_order_edit = this.invoice_doc.is_multi_order_edit;
-			console.log("Preserved is_multi_order_edit:", doc.is_multi_order_edit);
-		} else {
-			console.log("INFO: is_multi_order_edit not found in this.invoice_doc (may be normal)");
-		}
-
-		console.log("=== DEBUG: get_invoice_doc - final doc before return ===");
-		console.log("Final doc before return:", {
-			name: doc.name,
-			doctype: doc.doctype,
-			docstatus: doc.docstatus,
-			source_orders: doc.source_orders,
-			multi_order_names: doc.multi_order_names,
-			is_multi_order_consolidation: doc.is_multi_order_consolidation,
-			customer: doc.customer,
-			grand_total: doc.grand_total
-		});
 
 		return doc;
 	},
@@ -1348,49 +1272,60 @@ export default {
 				order_data: doc,
 			},
 			async: false,
-			callback: function (r) {
+			callback: async function (r) {
 				if (r.message) {
-					// Handle new response format that may include KOT data
+					// Handle different response formats
+					let orderDoc;
+					let kotData = null;
+					let autoKot = false;
+
 					if (r.message.sales_order) {
-						// New format with auto-print KOT data
-						vm.invoice_doc = r.message.sales_order;
-						
-						// Auto-print KOT if enabled
-						if (r.message.auto_print_kot && r.message.kot_data) {
+						// Response includes KOT data
+						orderDoc = r.message.sales_order;
+						kotData = r.message.kot_data;
+						autoKot = r.message.auto_print_kot;
+					} else {
+						// Simple response format
+						orderDoc = r.message;
+					}
+
+					vm.invoice_doc = orderDoc;
+					vm.eventBus.emit("show_message", {
+						title: __("Restaurant order {0} created successfully", [orderDoc.name]),
+						color: "success",
+					});
+
+					// Handle KOT printing if data is available
+					if (kotData && autoKot) {
+						// Auto-print KOT
+						try {
+							const { printKot } = await import('../../plugins/kot_print.js');
+							await printKot(kotData);
+						} catch (error) {
+							console.error("Error auto-printing KOT:", error);
+						}
+					} else if (kotData) {
+						// Ask user if they want to print KOT
+						const printKot = await new Promise((resolve) => {
+							frappe.confirm(
+								__("Order created successfully. Print KOT for kitchen?"),
+								() => resolve(true),
+								() => resolve(false)
+							);
+						});
+
+						if (printKot) {
 							try {
-								// Import KOT print function dynamically
-								import("../../plugins/kot_print.js").then(module => {
-									if (vm.pos_profile.posa_silent_print) {
-										module.printKOTSilent(r.message.kot_data);
-									} else {
-										module.printKOTWithPreview(r.message.kot_data);
-									}
-								});
-								
+								const { printKot: printKotFn } = await import('../../plugins/kot_print.js');
+								await printKotFn(kotData);
+							} catch (error) {
+								console.error("Error printing KOT:", error);
 								vm.eventBus.emit("show_message", {
-									title: __("Restaurant order {0} created and KOT printed", [vm.invoice_doc.name]),
-									color: "success",
-								});
-							} catch (kotError) {
-								console.error("Auto KOT print failed:", kotError);
-								vm.eventBus.emit("show_message", {
-									title: __("Restaurant order {0} created (KOT print failed)", [vm.invoice_doc.name]),
-									color: "warning",
+									title: __("Error printing KOT"),
+									color: "error",
 								});
 							}
-						} else {
-							vm.eventBus.emit("show_message", {
-								title: __("Restaurant order {0} created successfully", [vm.invoice_doc.name]),
-								color: "success",
-							});
 						}
-					} else {
-						// Original format (just sales order)
-						vm.invoice_doc = r.message;
-						vm.eventBus.emit("show_message", {
-							title: __("Restaurant order {0} created successfully", [r.message.name]),
-							color: "success",
-						});
 					}
 				} else {
 					vm.eventBus.emit("show_message", {

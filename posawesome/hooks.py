@@ -274,6 +274,7 @@ fixtures = [
                     "POS Profile-posa_language",
                     "POS Profile-posa_enable_restaurant_mode",
                     "POS Profile-posa_restaurant_section",
+                    "POS Profile-posa_auto_print_kot",
                     "Sales Order-restaurant_order_type",
                     "Sales Order-table_number",
                     "Sales Order-expected_preparation_time",
@@ -293,6 +294,7 @@ fixtures = [
                    [
                     "POS Profile-posa_enable_restaurant_mode",
                     "POS Profile-posa_restaurant_section",
+                    "POS Profile-posa_auto_print_kot",
                     "Sales Order-restaurant_order_type",
                     "Sales Order-table_number",
                     "Sales Order-expected_preparation_time",
@@ -320,6 +322,4 @@ fixtures = [
             ]
         ],
     },
-    "posawesome/fixtures/restaurant_custom_fields.json",
-    "posawesome/fixtures/restaurant_setup.json",
-   ]
+]
