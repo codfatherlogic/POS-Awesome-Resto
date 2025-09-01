@@ -79,7 +79,30 @@ def create_restaurant_order(order_data):
 			frappe.log_error(f"Failed to occupy table {table_number}: {str(e)}")
 			# Don't fail the order creation if table occupation fails
 	
-	return sales_order
+	# Check if auto-print KOT is enabled and generate KOT data
+	pos_profile_name = order_data.get("pos_profile")
+	auto_print_kot = False
+	if pos_profile_name:
+		try:
+			auto_print_kot = frappe.db.get_value("POS Profile", pos_profile_name, "posa_auto_print_kot") or False
+		except:
+			pass  # Field might not exist yet
+	
+	# Add KOT data to response if auto-print is enabled
+	result = sales_order
+	if auto_print_kot and sales_order:
+		try:
+			kot_data = generate_kot_print(order_data)
+			result = {
+				"sales_order": sales_order,
+				"kot_data": kot_data,
+				"auto_print_kot": True
+			}
+		except Exception as e:
+			frappe.log_error(f"Failed to generate KOT data: {str(e)}")
+			# Don't fail order creation if KOT generation fails
+	
+	return result
 
 @frappe.whitelist()
 def submit_restaurant_order(order_data):
@@ -503,6 +526,184 @@ def setup_restaurant_data():
 	}
 
 @frappe.whitelist()
+def generate_kot_print(order_data):
+	"""Generate Kitchen Order Ticket (KOT) print data without creating Sales Order"""
+	if isinstance(order_data, str):
+		order_data = json.loads(order_data)
+	
+	# Validate required data
+	if not order_data.get("items"):
+		frappe.throw(_("No items found for KOT printing"))
+	
+	order_type_name = ""
+	if order_data.get("restaurant_order_type"):
+		try:
+			order_type_doc = frappe.get_doc("Restaurant Order Type", order_data.get("restaurant_order_type"))
+			order_type_name = order_type_doc.order_type_name
+		except:
+			order_type_name = order_data.get("restaurant_order_type")
+	
+	# Prepare KOT data
+	kot_data = {
+		"kot_number": f"KOT-{now_datetime().strftime('%Y%m%d-%H%M%S')}",
+		"order_type": order_type_name or _("Standard"),
+		"table_number": order_data.get("table_number") or "",
+		"customer_name": order_data.get("customer_name") or order_data.get("customer") or _("Walk-in Customer"),
+		"datetime": now_datetime().strftime("%Y-%m-%d %H:%M:%S"),
+		"items": [],
+		"special_notes": order_data.get("posa_notes") or "",
+		"total_items": 0
+	}
+	
+	# Process items for KOT
+	total_qty = 0
+	for item in order_data.get("items", []):
+		kot_item = {
+			"item_code": item.get("item_code"),
+			"item_name": item.get("item_name") or item.get("item_code"),
+			"qty": item.get("qty", 0),
+			"uom": item.get("uom") or "Nos",
+			"special_instructions": item.get("special_instructions") or ""
+		}
+		kot_data["items"].append(kot_item)
+		total_qty += float(item.get("qty", 0))
+	
+	kot_data["total_items"] = int(total_qty)
+	
+	return kot_data
+
+@frappe.whitelist()
+def reprint_kot(order_name):
+	"""Reprint KOT for an existing order"""
+	try:
+		# Get the sales order
+		sales_order = frappe.get_doc("Sales Order", order_name)
+		
+		# Convert sales order to order_data format needed by generate_kot_html
+		order_data = {
+			"customer": sales_order.customer,
+			"items": [],
+			"table_number": sales_order.table_number,
+			"restaurant_order_type": sales_order.restaurant_order_type,
+			"pos_profile": sales_order.pos_profile,
+			"order_date": sales_order.transaction_date or sales_order.order_date,
+			"name": sales_order.name
+		}
+		
+		# Convert sales order items to the format expected
+		for item in sales_order.items:
+			order_data["items"].append({
+				"item_code": item.item_code,
+				"item_name": item.item_name,
+				"qty": item.qty,
+				"uom": item.uom,
+				"special_instructions": getattr(item, 'special_instructions', '') or ''
+			})
+		
+		# Generate KOT HTML
+		kot_html = generate_kot_html(order_data)
+		
+		return kot_html
+		
+	except Exception as e:
+		frappe.log_error(f"Error reprinting KOT for order {order_name}: {str(e)}")
+		frappe.throw(f"Error reprinting KOT: {str(e)}")
+
+@frappe.whitelist()
+def generate_kot_html(order_data):
+	"""Generate KOT HTML for printing"""
+	if isinstance(order_data, str):
+		order_data = json.loads(order_data)
+	
+	kot_data = generate_kot_print(order_data)
+	
+	# Generate KOT HTML template
+	items_html = ""
+	for item in kot_data["items"]:
+		special_note = f"<br><small><i>{item['special_instructions']}</i></small>" if item["special_instructions"] else ""
+		items_html += f"""
+		<tr>
+			<td style="border-bottom: 1px dashed #ccc; padding: 5px 0;">
+				<strong>{item['item_name']}</strong>{special_note}
+			</td>
+			<td style="border-bottom: 1px dashed #ccc; padding: 5px 0; text-align: center;">
+				<strong>{item['qty']} {item['uom']}</strong>
+			</td>
+		</tr>"""
+	
+	table_info = f"<p><strong>Table:</strong> {kot_data['table_number']}</p>" if kot_data["table_number"] else ""
+	notes_section = f"<p><strong>Special Notes:</strong><br>{kot_data['special_notes']}</p>" if kot_data["special_notes"] else ""
+	
+	kot_html = f"""
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="utf-8">
+		<title>KOT {kot_data['kot_number']}</title>
+		<style>
+			body {{ font-family: 'Courier New', monospace; width: 300px; margin: 0; padding: 10px; font-size: 12px; }}
+			.header {{ text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 10px; }}
+			.kot-title {{ font-size: 16px; font-weight: bold; margin: 0; }}
+			.kot-info {{ margin: 10px 0; }}
+			.kot-info p {{ margin: 2px 0; }}
+			.items-table {{ width: 100%; border-collapse: collapse; margin: 10px 0; }}
+			.items-table th {{ border-bottom: 2px solid #000; padding: 5px 0; text-align: left; }}
+			.items-table td {{ padding: 5px 0; vertical-align: top; }}
+			.footer {{ border-top: 2px solid #000; padding-top: 10px; margin-top: 15px; text-align: center; }}
+			.dashed-line {{ border-top: 1px dashed #000; margin: 10px 0; }}
+		</style>
+	</head>
+	<body>
+		<div class="header">
+			<h2 class="kot-title">KITCHEN ORDER TICKET</h2>
+			<p><strong>KOT #:</strong> {kot_data['kot_number']}</p>
+		</div>
+		
+		<div class="kot-info">
+			<p><strong>Order Type:</strong> {kot_data['order_type']}</p>
+			{table_info}
+			<p><strong>Customer:</strong> {kot_data['customer_name']}</p>
+			<p><strong>Date & Time:</strong> {kot_data['datetime']}</p>
+		</div>
+		
+		<div class="dashed-line"></div>
+		
+		<table class="items-table">
+			<thead>
+				<tr>
+					<th style="width: 70%;">ITEM</th>
+					<th style="width: 30%; text-align: center;">QTY</th>
+				</tr>
+			</thead>
+			<tbody>
+				{items_html}
+			</tbody>
+		</table>
+		
+		<div class="dashed-line"></div>
+		
+		<div class="kot-info">
+			<p><strong>Total Items:</strong> {kot_data['total_items']}</p>
+			{notes_section}
+		</div>
+		
+		<div class="footer">
+			<p><strong>*** KITCHEN COPY ***</strong></p>
+			<p>Please prepare items as ordered</p>
+		</div>
+		
+		<script>
+			window.onload = function() {{
+				window.print();
+			}};
+		</script>
+	</body>
+	</html>
+	"""
+	
+	return kot_html
+
+@frappe.whitelist()
 def create_invoice_from_multiple_orders(sales_orders, pos_profile_name=None):
 	"""Create a single invoice from multiple sales orders"""
 	if isinstance(sales_orders, str):
@@ -774,20 +975,21 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 		# Generate a unique name for the consolidated order (temporary)
 		import datetime
 		timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-		temp_order_name = f"TEMP-MULTI-{timestamp}"
+		temp_order_name = f"new-multi-order-{timestamp}"
 		
 		frappe.log_error(f"Creating new consolidated order: {temp_order_name}", "Multi Order Load Debug")
 		
 		consolidated_items = []
 		
 		# Collect all items from all orders (keep items separate, do not combine quantities)
+		# This ensures proper Sales Order line item linking in the final Sales Invoice
 		frappe.log_error(f"Starting item consolidation for {len(orders)} orders", "Multi Order Load Debug")
 		
 		for order in orders:
 			frappe.log_error(f"Processing items from order {order.name}: {len(order.items)} items", "Multi Order Load Debug")
 			for item in order.items:
 				# Always add each item separately, even if same item_code exists
-				# This ensures items from different orders remain distinct
+				# This ensures items from different orders remain distinct for proper SO->SI linking
 				new_item = frappe._dict({
 					'item_code': item.item_code,
 					'item_name': item.item_name,
@@ -799,7 +1001,7 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 					'amount': item.amount,
 					'warehouse': item.warehouse,
 					'source_order': order.name,  # Track which order this item came from
-					'source_order_item': item.name,  # Track original item reference
+					'source_order_item': item.name,  # Track original item reference for SO->SI linking
 					# Add a unique identifier to distinguish items from different orders
 					'unique_key': f"{item.item_code}_{order.name}_{item.name}"
 				})
@@ -895,6 +1097,14 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 			result['items'].append(item_dict)
 		
 		frappe.log_error(f"Returning NEW consolidated order data with {len(result['items'])} items. Original orders remain DRAFT.", "Multi Order Load Debug")
+		
+		# CRITICAL DEBUGGING: Log what we're actually returning
+		print(f"=== LOAD_MULTIPLE_DRAFT_ORDERS RETURN DEBUG ===")
+		print(f"Returning result keys: {list(result.keys())}")
+		print(f"source_orders in result: {result.get('source_orders', 'NOT_IN_RESULT')}")
+		print(f"multi_order_names in result: {result.get('multi_order_names', 'NOT_IN_RESULT')}")
+		print(f"is_multi_order_consolidation in result: {result.get('is_multi_order_consolidation', 'NOT_IN_RESULT')}")
+		
 		return result
 		
 	except Exception as e:
@@ -925,16 +1135,30 @@ def finalize_multi_order_payment(consolidated_order_data, payment_data, pos_prof
 		consolidated_order_data = json.loads(consolidated_order_data)
 	if isinstance(payment_data, str):
 		payment_data = json.loads(payment_data)
-	
+
 	try:
-		frappe.log_error(f"finalize_multi_order_payment called", "Multi Order Payment Debug")
+		print("=== FINALIZE MULTI ORDER PAYMENT DEBUG START ===")
+		print(f"consolidated_order_data type: {type(consolidated_order_data)}")
+		print(f"consolidated_order_data keys: {list(consolidated_order_data.keys()) if isinstance(consolidated_order_data, dict) else 'Not a dict'}")
+		
+		# Log all the critical fields we're looking for
+		print(f"source_orders field: {consolidated_order_data.get('source_orders', 'FIELD_NOT_FOUND')}")
+		print(f"multi_order_names field: {consolidated_order_data.get('multi_order_names', 'FIELD_NOT_FOUND')}")
+		print(f"is_multi_order_consolidation field: {consolidated_order_data.get('is_multi_order_consolidation', 'FIELD_NOT_FOUND')}")
 		
 		# Validate that this is a multi-order consolidation
 		if not consolidated_order_data.get('is_multi_order_consolidation'):
+			print("ERROR: Missing is_multi_order_consolidation flag!")
 			frappe.throw(_("This function is only for multi-order consolidations"))
 		
-		source_orders = consolidated_order_data.get('source_orders', [])
+		source_orders = consolidated_order_data.get('source_orders', [])		# Try alternative field names if source_orders is empty
 		if not source_orders:
+			source_orders = consolidated_order_data.get('multi_order_names', [])
+		
+		if not source_orders:
+			# Additional debugging for missing source_orders
+			print(f"ERROR: Missing source_orders! Available keys: {list(consolidated_order_data.keys())}")
+			print(f"Full data: {consolidated_order_data}")
 			frappe.throw(_("No source orders found in consolidated data"))
 		
 		# Verify all source orders are still in draft status
@@ -992,15 +1216,16 @@ def finalize_multi_order_payment(consolidated_order_data, payment_data, pos_prof
 		invoice_doc.rounded_total = total_amount
 		
 		# Add payment information
-		for payment in payment_data:
-			if payment.get('amount', 0) > 0:
-				payment_entry = invoice_doc.append("payments", {
-					"mode_of_payment": payment.get('mode_of_payment'),
-					"amount": payment.get('amount'),
-					"base_amount": payment.get('amount'),  # Assuming same currency
-					"account": payment.get('account', ''),
-					"type": payment.get('type', 'Cash')
-				})
+		if payment_data:
+			for payment in payment_data:
+				if payment.get('amount', 0) > 0:
+					payment_entry = invoice_doc.append("payments", {
+						"mode_of_payment": payment.get('mode_of_payment'),
+						"amount": payment.get('amount'),
+						"base_amount": payment.get('amount'),  # Assuming same currency
+						"account": payment.get('account', ''),
+						"type": payment.get('type', 'Cash')
+					})
 		
 		# Save and submit the invoice
 		invoice_doc.insert()
@@ -1008,18 +1233,31 @@ def finalize_multi_order_payment(consolidated_order_data, payment_data, pos_prof
 		
 		frappe.log_error(f"Successfully created Sales Invoice {invoice_doc.name} for multi-order payment. Original orders remain DRAFT.", "Multi Order Payment Success")
 		
-		# Return the invoice data
+		# Return the invoice data in the same format as normal POS invoice submission
 		result = {
 			'doctype': 'Sales Invoice',
 			'name': invoice_doc.name,
 			'customer': invoice_doc.customer,
 			'customer_name': invoice_doc.customer_name,
-			'posting_date': invoice_doc.posting_date,
+			'posting_date': str(invoice_doc.posting_date),
+			'posting_time': invoice_doc.posting_time,
+			'company': invoice_doc.company,
+			'currency': invoice_doc.currency,
+			'net_total': invoice_doc.net_total,
 			'grand_total': invoice_doc.grand_total,
+			'rounded_total': invoice_doc.rounded_total,
+			'is_pos': invoice_doc.is_pos,
+			'pos_profile': invoice_doc.pos_profile,
+			'docstatus': invoice_doc.docstatus,
+			'status': 'Paid',
+			# Multi-order specific fields
 			'is_multi_order_payment': True,
 			'source_draft_orders': source_orders,
-			'payment_status': 'Paid',
-			'message': f"Payment completed for {len(source_orders)} orders. Original orders remain as drafts."
+			'items': [item.as_dict() for item in invoice_doc.items],
+			'payments': [payment.as_dict() for payment in invoice_doc.payments],
+			# Include restaurant fields if they exist
+			'restaurant_order_type': getattr(invoice_doc, 'restaurant_order_type', None),
+			'table_number': getattr(invoice_doc, 'table_number', None),
 		}
 		
 		# Add a note in each source order about the payment
@@ -1044,7 +1282,8 @@ def finalize_multi_order_payment(consolidated_order_data, payment_data, pos_prof
 		
 	except Exception as e:
 		error_msg = str(e)
-		frappe.log_error(f"ERROR in finalize_multi_order_payment: {error_msg}\nTraceback: {frappe.get_traceback()}", "Multi-Order Payment Error")
+		frappe.logger().error(f"ERROR in finalize_multi_order_payment: {error_msg}")
+		frappe.logger().error(f"Traceback: {frappe.get_traceback()}")
 		frappe.throw(_("Error processing multi-order payment: {0}").format(error_msg))
 
 @frappe.whitelist()
@@ -1163,3 +1402,112 @@ def submit_multiple_orders_and_create_invoice(order_names, updated_order_data, p
 	except Exception as e:
 		frappe.log_error(f"Error submitting multiple orders and creating invoice: {str(e)}", "Multi-Order Submit Error")
 		frappe.throw(_("Error processing multiple orders: {0}").format(str(e)))
+
+@frappe.whitelist()
+def void_order_items(order_name, items_to_void):
+	"""Void specific items from a restaurant order"""
+	try:
+		if isinstance(items_to_void, str):
+			items_to_void = json.loads(items_to_void)
+		
+		# Get a fresh copy of the document to avoid timestamp mismatch
+		order_doc = frappe.get_doc("Sales Order", order_name)
+		
+		# Verify it's a draft order
+		if order_doc.docstatus != 0:
+			frappe.throw(_("Can only void items from draft orders"))
+		
+		# Create a list of items to keep (not void)
+		items_to_keep = []
+		voided_items = []
+		
+		for item in order_doc.items:
+			# Check if this item should be voided
+			should_void = False
+			for void_item in items_to_void:
+				if item.idx == void_item.get("idx"):
+					should_void = True
+					voided_items.append({
+						"item_name": item.item_name,
+						"qty": item.qty,
+						"amount": item.amount
+					})
+					break
+			
+			if not should_void:
+				items_to_keep.append(item)
+		
+		# Check if there are items left after voiding
+		if not items_to_keep:
+			frappe.throw(_("Cannot void all items. At least one item must remain in the order."))
+		
+		# Update the order with remaining items
+		order_doc.items = []
+		for item in items_to_keep:
+			order_doc.append("items", item)
+		
+		# Recalculate totals
+		order_doc.calculate_taxes_and_totals()
+		
+		# Save the updated order with flags to bypass timestamp check
+		order_doc.flags.ignore_permissions = True
+		order_doc.flags.ignore_validate_update_after_submit = True
+		order_doc.flags.ignore_version = True
+		order_doc.save(ignore_permissions=True, ignore_version=True)
+		
+		# Explicitly commit the transaction to ensure persistence
+		frappe.db.commit()
+		
+		# Reload the document to verify changes were saved
+		updated_doc = frappe.get_doc("Sales Order", order_name)
+		
+		# Log the void action
+		frappe.log_error(
+			f"Successfully voided {len(voided_items)} items from order {order_name}: {', '.join([item['item_name'] for item in voided_items])}. Remaining items: {len(updated_doc.items)}", 
+			"Restaurant Order Items Voided"
+		)
+		
+		return {
+			"status": "success",
+			"message": _("Items voided successfully"),
+			"voided_items": voided_items,
+			"remaining_items": len(updated_doc.items),
+			"updated_total": updated_doc.grand_total
+		}
+		
+	except Exception as e:
+		frappe.db.rollback()
+		frappe.log_error(f"Error voiding items from order {order_name}: {str(e)}\n{frappe.get_traceback()}", "Void Items Error")
+		frappe.throw(_("Error voiding items: {0}").format(str(e)))
+
+@frappe.whitelist()
+def debug_test_consolidation():
+	"""Debug function to test multi-order consolidation data preservation"""
+	
+	# Test 1: Create sample consolidation data with proper fields
+	sample_data = {
+		"name": "debug-test-invoice",
+		"doctype": "Sales Invoice",
+		"customer": "Test Customer", 
+		"grand_total": 100,
+		"is_multi_order_consolidation": True,
+		"source_orders": ["test-order-1", "test-order-2"],
+		"multi_order_names": ["test-order-1", "test-order-2"],
+		"payments": [{"mode_of_payment": "Cash", "amount": 100}]
+	}
+	
+	frappe.logger().info("=== Debug Consolidation Test ===")
+	frappe.logger().info(f"Sample data created with keys: {list(sample_data.keys())}")
+	frappe.logger().info(f"source_orders: {sample_data.get('source_orders')}")
+	frappe.logger().info(f"multi_order_names: {sample_data.get('multi_order_names')}")
+	frappe.logger().info(f"is_multi_order_consolidation: {sample_data.get('is_multi_order_consolidation')}")
+	
+	# Test 2: Call finalize_multi_order_payment directly
+	try:
+		result = finalize_multi_order_payment(sample_data, {}, "Test-Profile")
+		frappe.logger().info(f"finalize_multi_order_payment result: {result}")
+		return {"status": "success", "result": result, "test_data": sample_data}
+	except Exception as e:
+		error_msg = f"finalize_multi_order_payment error: {str(e)}"
+		frappe.logger().error(error_msg)
+		return {"status": "error", "error": error_msg, "test_data": sample_data}

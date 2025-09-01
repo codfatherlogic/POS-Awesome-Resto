@@ -1512,17 +1512,41 @@ export default {
 		},
 		// Submit invoice to backend after all validations
 		submit_invoice(print) {
+			console.log("=== PAYMENTS.VUE SUBMIT_INVOICE START ===");
+			console.log("this.invoice_doc before get_invoice_doc():", {
+				name: this.invoice_doc?.name,
+				doctype: this.invoice_doc?.doctype,
+				source_orders: this.invoice_doc?.source_orders,
+				multi_order_names: this.invoice_doc?.multi_order_names,
+				is_multi_order_consolidation: this.invoice_doc?.is_multi_order_consolidation
+			});
+			
+			// CRITICAL FIX: Get the most current invoice document with all preserved fields
+			const currentInvoiceDoc = this.get_invoice_doc();
+			
+			console.log("=== SUBMIT INVOICE DEBUG ===");
+			console.log("Original this.invoice_doc multi-order fields:", {
+				source_orders: this.invoice_doc.source_orders,
+				multi_order_names: this.invoice_doc.multi_order_names,
+				is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation
+			});
+			console.log("Updated currentInvoiceDoc multi-order fields:", {
+				source_orders: currentInvoiceDoc.source_orders,
+				multi_order_names: currentInvoiceDoc.multi_order_names,
+				is_multi_order_consolidation: currentInvoiceDoc.is_multi_order_consolidation
+			});
+			
 			// For return invoices, ensure payments are negative one last time
-			if (this.invoice_doc.is_return) {
+			if (currentInvoiceDoc.is_return) {
 				this.ensureReturnPaymentsAreNegative();
 			}
 			let totalPayedAmount = 0;
-			this.invoice_doc.payments.forEach((payment) => {
+			currentInvoiceDoc.payments.forEach((payment) => {
 				payment.amount = this.flt(payment.amount);
 				totalPayedAmount += payment.amount;
 			});
-			if (this.invoice_doc.is_return && totalPayedAmount === 0) {
-				this.invoice_doc.is_pos = 0;
+			if (currentInvoiceDoc.is_return && totalPayedAmount === 0) {
+				currentInvoiceDoc.is_pos = 0;
 			}
 			if (this.customer_credit_dict.length) {
 				this.customer_credit_dict.forEach((row) => {
@@ -1530,8 +1554,8 @@ export default {
 				});
 			}
 			let data = {
-				total_change: !this.invoice_doc.is_return ? -this.diff_payment : 0,
-				paid_change: !this.invoice_doc.is_return ? this.paid_change : 0,
+				total_change: !currentInvoiceDoc.is_return ? -this.diff_payment : 0,
+				paid_change: !currentInvoiceDoc.is_return ? this.paid_change : 0,
 				credit_change: -this.credit_change,
 				redeemed_customer_credit: this.redeemed_customer_credit,
 				customer_credit_dict: this.customer_credit_dict,
@@ -1541,14 +1565,14 @@ export default {
 
 			if (isOffline()) {
 				try {
-					saveOfflineInvoice({ data: data, invoice: this.invoice_doc });
+					saveOfflineInvoice({ data: data, invoice: currentInvoiceDoc });
 					this.eventBus.emit("pending_invoices_changed", getPendingOfflineInvoiceCount());
 					vm.eventBus.emit("show_message", {
 						title: __("Invoice saved offline"),
 						color: "warning",
 					});
 					if (print) {
-						this.print_offline_invoice(this.invoice_doc);
+						this.print_offline_invoice(currentInvoiceDoc);
 					}
 					vm.eventBus.emit("clear_invoice");
 					vm.eventBus.emit("reset_posting_date");
@@ -1566,7 +1590,7 @@ export default {
 			}
 			// Determine the correct API method based on document type and mode
 			let submitMethod;
-			if (this.invoice_doc.doctype === "Sales Order") {
+			if (currentInvoiceDoc.doctype === "Sales Order") {
 				submitMethod = "posawesome.posawesome.api.sales_orders.submit_sales_order";
 			} else if (this.invoiceType === "Order" && this.pos_profile.posa_create_only_sales_order) {
 				submitMethod = "posawesome.posawesome.api.sales_orders.submit_sales_order";
@@ -1574,14 +1598,23 @@ export default {
 				submitMethod = "posawesome.posawesome.api.invoices.submit_invoice";
 			}
 			
-			console.log("Submitting with method:", submitMethod, "for doctype:", this.invoice_doc.doctype);
+			console.log("Submitting with method:", submitMethod, "for doctype:", currentInvoiceDoc.doctype);
+			console.log("Final invoice data being sent:", {
+				name: currentInvoiceDoc.name,
+				doctype: currentInvoiceDoc.doctype,
+				source_orders: currentInvoiceDoc.source_orders,
+				multi_order_names: currentInvoiceDoc.multi_order_names,
+				is_multi_order_consolidation: currentInvoiceDoc.is_multi_order_consolidation,
+				customer: currentInvoiceDoc.customer,
+				grand_total: currentInvoiceDoc.grand_total
+			});
 			
 			frappe.call({
 				method: submitMethod,
 				args: {
 					data: data,
-					invoice: this.invoice_doc,
-					order: this.invoice_doc,
+					invoice: currentInvoiceDoc,
+					order: currentInvoiceDoc,
 				},
 				callback: function (r) {
 					if (r.exc) {
@@ -2177,6 +2210,57 @@ export default {
 				}
 			}
 			this.eventBus.emit("pending_invoices_changed", getPendingOfflineInvoiceCount());
+		},
+		// Get invoice document with all custom fields preserved
+		get_invoice_doc() {
+			console.log("=== PAYMENTS.VUE GET_INVOICE_DOC CALLED ===");
+			console.log("Original this.invoice_doc:", {
+				name: this.invoice_doc?.name,
+				doctype: this.invoice_doc?.doctype,
+				source_orders: this.invoice_doc?.source_orders,
+				multi_order_names: this.invoice_doc?.multi_order_names,
+				is_multi_order_consolidation: this.invoice_doc?.is_multi_order_consolidation,
+				is_multi_order_edit: this.invoice_doc?.is_multi_order_edit
+			});
+
+			let finalDoc = JSON.parse(JSON.stringify(this.invoice_doc));
+			
+			// Preserve multi-order consolidation fields if they exist
+			if (this.invoice_doc.source_orders) {
+				finalDoc.source_orders = this.invoice_doc.source_orders;
+				console.log("Preserved source_orders:", finalDoc.source_orders);
+			} else {
+				console.log("❌ WARNING: source_orders NOT FOUND in this.invoice_doc");
+			}
+			if (this.invoice_doc.multi_order_names) {
+				finalDoc.multi_order_names = this.invoice_doc.multi_order_names;
+				console.log("Preserved multi_order_names:", finalDoc.multi_order_names);
+			} else {
+				console.log("❌ WARNING: multi_order_names NOT FOUND in this.invoice_doc");
+			}
+			if (this.invoice_doc.is_multi_order_consolidation) {
+				finalDoc.is_multi_order_consolidation = this.invoice_doc.is_multi_order_consolidation;
+				console.log("Preserved is_multi_order_consolidation:", finalDoc.is_multi_order_consolidation);
+			} else {
+				console.log("❌ WARNING: is_multi_order_consolidation NOT FOUND in this.invoice_doc");
+			}
+			if (this.invoice_doc.is_multi_order_edit) {
+				finalDoc.is_multi_order_edit = this.invoice_doc.is_multi_order_edit;
+				console.log("Preserved is_multi_order_edit:", finalDoc.is_multi_order_edit);
+			} else {
+				console.log("INFO: is_multi_order_edit not found (may be normal)");
+			}
+
+			console.log("Final document with preserved fields:", {
+				name: finalDoc.name,
+				doctype: finalDoc.doctype,
+				source_orders: finalDoc.source_orders,
+				multi_order_names: finalDoc.multi_order_names,
+				is_multi_order_consolidation: finalDoc.is_multi_order_consolidation,
+				is_multi_order_edit: finalDoc.is_multi_order_edit
+			});
+			
+			return finalDoc;
 		},
 	},
 	// Lifecycle hook: created

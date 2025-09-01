@@ -338,6 +338,27 @@ def validate_return_items(original_invoice_name, return_items, doctype="Sales In
 def update_invoice(data):
     data = json.loads(data)
     
+    # Check if this is a multi-order consolidation
+    if data.get("is_multi_order_consolidation"):
+        frappe.log_error(f"Detected multi-order consolidation in update_invoice: {data.get('name')}", "Multi Order Update Debug")
+        
+        # For multi-order consolidations, we don't create a real document in update_invoice
+        # We just return the data as-is for the POS to use in submit_invoice
+        # Set some required fields to prevent validation errors
+        data.setdefault("doctype", "Sales Invoice")
+        data.setdefault("docstatus", 0)  # Draft
+        
+        # Return the data structure as if it were a document
+        return {
+            "name": data.get("name"),
+            "doctype": data.get("doctype"),
+            "docstatus": data.get("docstatus"),
+            "customer": data.get("customer"),
+            "grand_total": data.get("grand_total"),
+            "is_multi_order_consolidation": True
+        }
+    
+    # Continue with normal invoice processing for non-multi-order cases
     # For existing documents, use the doctype from data; for new documents, determine from POS Profile
     if data.get("name") and data.get("doctype"):
         # Existing document - use the provided doctype
@@ -566,6 +587,33 @@ def submit_invoice(invoice, data):
     data = json.loads(data)
     invoice = json.loads(invoice)
     pos_profile = invoice.get("pos_profile")
+    
+    # Check if this is a multi-order consolidation payment
+    if invoice.get("is_multi_order_consolidation"):
+        # CRITICAL DEBUGGING: Log key fields before function call
+        print(f"DEBUG: Multi-order detected - invoice keys: {list(invoice.keys())}")
+        print(f"DEBUG: source_orders = {invoice.get('source_orders', 'NOT_FOUND')}")
+        print(f"DEBUG: multi_order_names = {invoice.get('multi_order_names', 'NOT_FOUND')}")
+        print(f"DEBUG: is_multi_order_consolidation = {invoice.get('is_multi_order_consolidation')}")
+        
+        # Use the special multi-order payment handler
+        try:
+            from posawesome.posawesome.api.restaurant_orders import finalize_multi_order_payment
+            print(f"DEBUG: About to call finalize_multi_order_payment with data keys: {list(invoice.keys())}")
+            result = finalize_multi_order_payment(
+                consolidated_order_data=invoice,
+                payment_data=data.get("payments", []),
+                pos_profile_name=pos_profile
+            )
+            
+            frappe.log_error(f"Successfully processed multi-order payment: {result.get('name')}", "Multi Order Payment Success")
+            return result
+            
+        except Exception as e:
+            frappe.log_error(f"Error in multi-order payment processing: {str(e)}", "Multi Order Payment Error")
+            frappe.throw(_("Error processing multi-order payment: {0}").format(str(e)))
+    
+    # Continue with normal invoice processing
     doctype = "Sales Invoice"
     if pos_profile and frappe.db.get_value(
         "POS Profile", pos_profile, "create_pos_invoice_instead_of_sales_invoice"

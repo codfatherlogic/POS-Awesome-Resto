@@ -1,0 +1,381 @@
+18:11:20 system        | socketio.1 started (pid=37299)
+18:11:20 system        | worker.1 started (pid=37300)
+18:11:20 system        | watch.1 started (pid=37301)
+18:11:20 system        | redis_queue.1 started (pid=37302)
+18:11:20 system        | web.1 started (pid=37303)
+18:11:20 system        | redis_cache.1 started (pid=37304)
+18:11:20 system        | schedule.1 started (pid=37306)
+18:11:20 redis_queue.1 | 37302:C 31 Aug 2025 18:11:20.677 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+18:11:20 redis_queue.1 | 37302:C 31 Aug 2025 18:11:20.677 * Redis version=8.2.0, bits=64, commit=00000000, modified=1, pid=37302, just started
+18:11:20 redis_queue.1 | 37302:C 31 Aug 2025 18:11:20.677 * Configuration loaded
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.678 * monotonic clock: POSIX clock_gettime
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.678 * Running mode=standalone, port=11002.
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.678 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.678 * Server initialized
+18:11:20 redis_cache.1 | 37304:C 31 Aug 2025 18:11:20.678 * oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+18:11:20 redis_cache.1 | 37304:C 31 Aug 2025 18:11:20.678 * Redis version=8.2.0, bits=64, commit=00000000, modified=1, pid=37304, just started
+18:11:20 redis_cache.1 | 37304:C 31 Aug 2025 18:11:20.678 * Configuration loaded
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * Loading RDB produced by version 8.2.0
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * RDB age 356 seconds
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * RDB memory usage when created 1.53 Mb
+18:11:20 redis_cache.1 | 37304:M 31 Aug 2025 18:11:20.679 * monotonic clock: POSIX clock_gettime
+18:11:20 redis_cache.1 | 37304:M 31 Aug 2025 18:11:20.679 * Running mode=standalone, port=13002.
+18:11:20 redis_cache.1 | 37304:M 31 Aug 2025 18:11:20.679 # WARNING: The TCP backlog setting of 511 cannot be enforced because kern.ipc.somaxconn is set to the lower value of 128.
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * Done loading RDB, keys loaded: 15, keys expired: 2.
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * DB loaded from disk: 0.001 seconds
+18:11:20 redis_queue.1 | 37302:M 31 Aug 2025 18:11:20.679 * Ready to accept connections tcp
+18:11:20 redis_cache.1 | 37304:M 31 Aug 2025 18:11:20.679 * Server initialized
+18:11:20 redis_cache.1 | 37304:M 31 Aug 2025 18:11:20.679 * Ready to accept connections tcp
+18:11:20 socketio.1    | Realtime service listening on:  9002
+18:11:21 watch.1       | 
+18:11:21 watch.1       | yarn run v1.22.22
+18:11:21 watch.1       | $ node esbuild --watch --live-reload
+18:11:21 web.1         | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+18:11:21 web.1         |  * Running on all addresses (0.0.0.0)
+18:11:21 web.1         |  * Running on http://127.0.0.1:8002
+18:11:21 web.1         |  * Running on http://10.10.10.233:8002
+18:11:21 web.1         | [33mPress CTRL+C to quit[0m
+18:11:21 web.1         |  * Restarting with stat
+18:11:21 web.1         |  * Debugger is active!
+18:11:21 web.1         |  * Debugger PIN: 131-770-964
+18:11:22 watch.1       | Browserslist: caniuse-lite is outdated. Please run:
+18:11:22 watch.1       |   npx update-browserslist-db@latest
+18:11:22 watch.1       |   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+18:11:26 watch.1       | Watching for changes...
+18:11:54 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:54] "GET / HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "[32mGET /app/posapp?id=ded2c7c8-9d31-4a56-9c2b-a13df2dfb2ac&vscodeBrowserReqId=1756644119806 HTTP/1.1[0m" 301 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /login?redirect-to=/app/posapp HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/frappe/dist/css/login.bundle.NH26F6KQ.css HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/erpnext/dist/js/erpnext-web.bundle.253I7LT4.js HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/erpnext/dist/css/erpnext-web.bundle.6RR6JG5J.css HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/frappe/dist/css/website.bundle.GD2PKE3K.css HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/frappe/dist/js/frappe-web.bundle.ILJTI2Z3.js HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /website_script.js HTTP/1.1" 200 -
+18:11:59 web.1         | 127.0.0.1 - - [31/Aug/2025 18:11:59] "GET /assets/frappe/dist/js/file_uploader.bundle.S2HCET7T.js HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET / HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/frappe/dist/css/login.bundle.NH26F6KQ.css HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/frappe/dist/css/website.bundle.GD2PKE3K.css HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/erpnext/dist/css/erpnext-web.bundle.6RR6JG5J.css HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/frappe/dist/js/frappe-web.bundle.ILJTI2Z3.js HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/erpnext/dist/js/erpnext-web.bundle.253I7LT4.js HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/erpnext/images/erpnext-logo.svg HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/frappe/css/fonts/inter/InterVariable.woff2 HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /website_script.js HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/frappe/dist/js/file_uploader.bundle.S2HCET7T.js HTTP/1.1" 200 -
+18:12:43 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:43] "GET /assets/erpnext/images/erpnext-favicon.svg HTTP/1.1" 200 -
+18:12:48 web.1         | /Users/sammishthundiyil/frappe-bench-tech/env/lib/python3.13/site-packages/werkzeug/wrappers/request.py:190: DeprecationWarning: login: Sending `cmd` for RPC calls is deprecated, call REST API instead `/api/method/cmd`
+18:12:48 web.1         |   resp = f(*args[:-2] + (request,))
+18:12:48 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:48] "POST /login HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /app/home HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/css/desk.bundle.EELUFMJO.css HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/css/report.bundle.FHXXEFMB.css HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/list.bundle.OHB7B3O3.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/libs.bundle.TIV7ZGVY.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/form.bundle.BXC2RXF7.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/dist/css/erpnext.bundle.3GKYTN3I.css HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/desk.bundle.TOMJO2WU.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/controls.bundle.NNTI4RUE.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/report.bundle.6DS2AGZ4.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/telemetry.bundle.LKEZCADB.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/billing.bundle.TQHLK7UT.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/dist/js/erpnext.bundle.DALWDP7V.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/icons/timeless/icons.svg?v=1756644166.0754478 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/icons/espresso/icons.svg?v=1756644166.0754478 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "[33mGET /assets/posawesome/dist/js/posawesome.css HTTP/1.1[0m" 404 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "[33mGET /assets/posawesome/dist/js/posawesome.umd.js HTTP/1.1[0m" 404 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/css/website.bundle.2GDVLCFW.css HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/dist/css/erpnext-web.bundle.HWFNYTTS.css HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/dist/js/erpnext-web.bundle.J4A2DQB4.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/frappe-web.bundle.GLSTGT62.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/dist/js/file_uploader.bundle.PFKHLXZE.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /website_script.js HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/email.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/delete.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/submit.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/cancel.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/click.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/error.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/sounds/alert.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/sounds/incoming-call.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/erpnext/sounds/call-disconnect.mp3 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/images/ui-states/notification-empty-state.svg HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644169527 HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "GET /assets/frappe/images/ui-states/event-empty-state.svg HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/frappe.desk.desktop.get_workspace_sidebar_items HTTP/1.1" 200 -
+18:12:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:49] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:12:50 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:50] "GET /assets/frappe/dist/js/video_player.bundle.DUYYLSFO.js HTTP/1.1" 200 -
+18:12:51 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:51] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:12:52 web.1         | 127.0.0.1 - - [31/Aug/2025 18:12:52] "POST /api/method/frappe.desk.desk_page.getpage HTTP/1.1" 200 -
+18:13:00 web.1         | 127.0.0.1 - - [31/Aug/2025 18:13:00] "POST /api/method/frappe.desk.doctype.route_history.route_history.deferred_insert HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /app/posapp HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/posawesome.css HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/posawesome.umd.js HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/posapp/workers/itemWorker.js HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/libs/dexie.min.js?v=1 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644261171 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.utilities.get_current_user_language HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/node_modules/vuetify/dist/vuetify.min.css HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=1000&order_by=name&doctype=Customer%20Group&_=1756644261172 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/frappe/css/fonts/inter/Inter-Regular.woff2 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=5000&order_by=name&doctype=Territory&_=1756644261173 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&page_length=10&doctype=Gender&limit=20&_=1756644261174 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "HEAD /app HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /api/method/frappe.client.get?doctype=POS%20Settings&_=1756644261175 HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.utils.get_active_pos_profile HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.shifts.check_opening_shift HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.invoices.get_price_list_currency HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_restaurant_order_types HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_available_tables HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.utilities.get_pos_profile_tax_inclusive HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /sw.js HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.customers.get_customers_count HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/offline/index.js HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.m_pesa.get_mpesa_mode_of_payment HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "GET /assets/posawesome/dist/js/libs/dexie.min.js HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.offers.get_offers HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.customers.get_customer_names HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items HTTP/1.1" 200 -
+18:14:21 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:21] "POST /api/method/posawesome.posawesome.api.items.get_items HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "POST /api/method/posawesome.posawesome.api.items.get_items_details HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "GET /app/posapp HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "HEAD / HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "GET /manifest.json HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "GET /offline.html HTTP/1.1" 200 -
+18:14:22 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:22] "GET /website_script.js HTTP/1.1" 200 -
+18:14:25 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:25] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_restaurant_orders HTTP/1.1" 200 -
+18:14:25 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:25] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_restaurant_orders HTTP/1.1" 200 -
+18:14:30 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:30] "POST /api/method/posawesome.posawesome.api.restaurant_orders.load_multiple_draft_orders_for_editing HTTP/1.1" 200 -
+18:14:30 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:30] "POST /api/method/posawesome.posawesome.api.items.get_items_details HTTP/1.1" 200 -
+18:14:30 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:30] "POST /api/method/posawesome.posawesome.api.customers.get_customer_info HTTP/1.1" 200 -
+18:14:30 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:30] "POST /api/method/posawesome.posawesome.api.customer.get_customer_balance HTTP/1.1" 200 -
+18:14:30 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:30] "GET /assets/frappe/css/fonts/inter/Inter-SemiBold.woff2 HTTP/1.1" 200 -
+18:14:31 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:31] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:14:31 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:31] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:14:32 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:32] "POST /api/method/posawesome.posawesome.api.invoices.update_invoice HTTP/1.1" 200 -
+18:14:32 web.1         | Fetching sales persons...
+18:14:32 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:32] "POST /api/method/posawesome.posawesome.api.customers.get_customer_addresses HTTP/1.1" 200 -
+18:14:32 web.1         | Found 1 sales persons: [{"name": "Sales Team", "sales_person_name": "Sales Team"}]
+18:14:32 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:32] "POST /api/method/posawesome.posawesome.api.utilities.get_sales_person_names HTTP/1.1" 200 -
+18:14:36 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:36] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:14:36 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:36] "HEAD /app HTTP/1.1" 200 -
+18:14:36 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:36] "HEAD / HTTP/1.1" 200 -
+18:14:41 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:41] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:14:41 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:41] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644287438 HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=5000&order_by=name&doctype=Territory&_=1756644287440 HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&page_length=10&doctype=Gender&limit=20&_=1756644287441 HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=1000&order_by=name&doctype=Customer%20Group&_=1756644287439 HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.utilities.get_current_user_language HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.client.get?doctype=POS%20Settings&_=1756644287442 HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "HEAD /app HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.utilities.get_pos_profile_tax_inclusive HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.utils.get_active_pos_profile HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "HEAD / HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.shifts.check_opening_shift HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_restaurant_order_types HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_available_tables HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.invoices.get_price_list_currency HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "GET /website_script.js HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.utilities.get_pos_profile_tax_inclusive HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.m_pesa.get_mpesa_mode_of_payment HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.offers.get_offers HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.customers.get_customers_count HTTP/1.1" 200 -
+18:14:47 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:47] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:14:48 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:48] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:14:48 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:48] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "GET /app HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "GET /sw.js HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644289776 HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:14:49 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:49] "POST /api/method/frappe.desk.desktop.get_workspace_sidebar_items HTTP/1.1" 200 -
+18:14:50 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:50] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:14:50 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:50] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:14:50 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:50] "HEAD /app HTTP/1.1" 200 -
+18:14:50 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:50] "HEAD / HTTP/1.1" 200 -
+18:14:51 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:51] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:14:51 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:51] "GET /sw.js HTTP/1.1" 200 -
+18:14:51 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:51] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:14:52 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:52] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:14:52 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:52] "HEAD /app HTTP/1.1" 200 -
+18:14:52 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:52] "HEAD / HTTP/1.1" 200 -
+18:14:52 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:52] "GET /sw.js HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "GET /api/method/frappe.desk.reportview.get_list?filters={"name":"Administrator"}&fields=["*"]&doctype=Dashboard%20Settings&limit=20&_=1756644289777 HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Dashboard%20Chart&name=Sales%20Order%20Trends&_=1756644289778 HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/frappe.desk.query_report.get_script HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "POST /api/method/frappe.desk.query_report.run HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "GET /api/method/frappe.client.get_value?doctype=Report&fieldname=ref_doctype&filters=Sales%20Order%20Trends&_=1756644289780 HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "GET /api/method/frappe.client.get?doctype=Dashboard%20Chart&name=Sales%20Order%20Trends&_=1756644289779 HTTP/1.1" 200 -
+18:14:53 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:53] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Sales%20Order&with_parent=1&cached_timestamp=&_=1756644289781 HTTP/1.1" 200 -
+18:14:54 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:54] "POST /api/method/frappe.desk.listview.get_list_settings HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "GET /api/method/frappe.desk.reportview.get_list?fields=["name","filter_name","for_user","filters"]&filters={"reference_doctype":"Sales%20Order"}&or_filters=[["for_user","%3D","Administrator"],["for_user","%3D",""]]&order_by=filter_name%20asc&doctype=List%20Filter&limit=20&_=1756644289782 HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "GET /assets/frappe/images/ui-states/list-empty-state.svg HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "GET /api/method/frappe.realtime.can_subscribe_doctype?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc&doctype=Sales%20Order HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "POST /api/method/frappe.desk.reportview.get HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "GET /assets/frappe/css/fonts/inter/Inter-Medium.woff2 HTTP/1.1" 200 -
+18:14:55 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:55] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:14:56 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:56] "POST /api/method/frappe.desk.reportview.get HTTP/1.1" 200 -
+18:14:56 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:56] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:14:56 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:56] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:14:56 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:56] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /app/sales-order HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644298565 HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Sales%20Order&with_parent=1&cached_timestamp=2025-07-28%2012:14:29.760988&_=1756644298566 HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/frappe.desk.listview.get_list_settings HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /api/method/frappe.desk.reportview.get_list?fields=["name","filter_name","for_user","filters"]&filters={"reference_doctype":"Sales%20Order"}&or_filters=[["for_user","%3D","Administrator"],["for_user","%3D",""]]&order_by=filter_name%20asc&doctype=List%20Filter&limit=20&_=1756644298567 HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "GET /api/method/frappe.realtime.can_subscribe_doctype?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc&doctype=Sales%20Order HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/frappe.desk.reportview.get HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:14:58 web.1         | 127.0.0.1 - - [31/Aug/2025 18:14:58] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:15:00 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:00] "GET /sw.js HTTP/1.1" 200 -
+18:15:00 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:00] "POST /api/method/frappe.desk.desktop.get_workspace_sidebar_items HTTP/1.1" 200 -
+18:15:01 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:01] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:15:02 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:02] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:15:02 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:02] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.desktop.get_desktop_page HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.reportview.get_list?filters={"name":"Administrator"}&fields=["*"]&doctype=Dashboard%20Settings&limit=20&_=1756644298568 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Dashboard%20Chart&name=Profit%20and%20Loss&_=1756644298569 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Number%20Card&name=Total%20Outgoing%20Payment&_=1756644298573 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Number%20Card&name=Total%20Incoming%20Payment&_=1756644298572 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Number%20Card&name=Total%20Outgoing%20Bills&_=1756644298570 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoc?doctype=Number%20Card&name=Total%20Incoming%20Bills&_=1756644298571 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_result HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.query_report.get_script HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_result HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_result HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/erpnext.accounts.doctype.accounting_dimension.accounting_dimension.get_dimensions HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_result HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Payment%20Entry&with_parent=1&cached_timestamp=&_=1756644298574 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Payment%20Entry&with_parent=1&cached_timestamp=&_=1756644298575 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_percentage_difference HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_percentage_difference HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Sales%20Invoice&with_parent=1&cached_timestamp=&_=1756644298576 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_percentage_difference HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=Purchase%20Invoice&with_parent=1&cached_timestamp=&_=1756644298577 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.doctype.number_card.number_card.get_percentage_difference HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "POST /api/method/frappe.desk.query_report.run HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.client.get_value?doctype=Report&fieldname=ref_doctype&filters=Profit%20and%20Loss%20Statement&_=1756644298579 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.client.get?doctype=Dashboard%20Chart&name=Profit%20and%20Loss&_=1756644298578 HTTP/1.1" 200 -
+18:15:04 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:04] "GET /api/method/frappe.desk.form.load.getdoctype?doctype=GL%20Entry&with_parent=1&cached_timestamp=&_=1756644298580 HTTP/1.1" 200 -
+18:15:05 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:05] "POST /api/method/frappe.desk.doctype.route_history.route_history.deferred_insert HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "POST /api/method/frappe.desk.listview.get_list_settings HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "GET /api/method/frappe.desk.reportview.get_list?fields=["name","filter_name","for_user","filters"]&filters={"reference_doctype":"Sales%20Invoice"}&or_filters=[["for_user","%3D","Administrator"],["for_user","%3D",""]]&order_by=filter_name%20asc&doctype=List%20Filter&limit=20&_=1756644298581 HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "GET /api/method/frappe.realtime.can_subscribe_doctype?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc&doctype=Sales%20Invoice HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "POST /api/method/frappe.desk.reportview.get HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "POST /api/method/frappe.model.utils.user_settings.save HTTP/1.1" 200 -
+18:15:06 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:06] "POST /api/method/frappe.desk.reportview.get_count HTTP/1.1" 200 -
+18:15:08 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:08] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:15:08 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:08] "HEAD /app HTTP/1.1" 200 -
+18:15:08 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:08] "HEAD / HTTP/1.1" 200 -
+18:15:12 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:12] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:15:12 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:12] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:15:13 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:13] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:15:14 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:14] "HEAD /app HTTP/1.1" 200 -
+18:15:14 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:14] "HEAD / HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /app/posapp HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/erpnext.accounts.utils.get_fiscal_year HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/frappe.desk.doctype.notification_log.notification_log.get_notification_logs HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.desk.doctype.event.event.get_events?start=2025-08-31&end=2025-08-31&_=1756644315357 HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utilities.get_database_usage HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=5000&order_by=name&doctype=Territory&_=1756644315359 HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&page_length=10&doctype=Gender&limit=20&_=1756644315360 HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.desk.reportview.get_list?fields=["name"]&filters={"is_group":0}&limit=1000&order_by=name&doctype=Customer%20Group&_=1756644315358 HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utilities.get_current_user_language HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "HEAD /assets/frappe/images/frappe-logo.png HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.client.get?doctype=POS%20Settings&_=1756644315361 HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "GET /api/method/frappe.realtime.get_user_info?sid=cc6a10e55f8692d1fb2a232a565c04600bb7afce31590d5fee8454cc HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "HEAD /app HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.shifts.check_opening_shift HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utilities.get_pos_profile_tax_inclusive HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.invoices.get_price_list_currency HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_restaurant_order_types HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.restaurant_orders.get_available_tables HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utilities.get_pos_profile_tax_inclusive HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utils.get_active_pos_profile HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.m_pesa.get_mpesa_mode_of_payment HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.offers.get_offers HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.items.get_items_groups HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "HEAD / HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.customers.get_customers_count HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.utilities.get_server_usage HTTP/1.1" 200 -
+18:15:15 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:15] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:15:16 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:16] "POST /api/method/posawesome.posawesome.api.items.get_items_count HTTP/1.1" 200 -
+18:15:17 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:17] "POST /api/method/frappe.desk.doctype.route_history.route_history.deferred_insert HTTP/1.1" 200 -
+18:15:17 web.1         | 127.0.0.1 - - [31/Aug/2025 18:15:17] "GET /sw.js HTTP/1.1" 200 -
+18:15:18 redis_queue.1 | 37302:signal-handler (1756644318) Received SIGTERM scheduling shutdown...
+18:15:18 redis_cache.1 | 37304:signal-handler (1756644318) Received SIGTERM scheduling shutdown...
+18:15:19 system        | worker.1 stopped (rc=-15)
+18:15:19 system        | sending SIGTERM to redis_cache.1 (pid 37304)
+18:15:19 system        | sending SIGTERM to redis_queue.1 (pid 37302)
+18:15:19 system        | sending SIGTERM to web.1 (pid 37303)
+18:15:19 system        | sending SIGTERM to socketio.1 (pid 37299)
+18:15:19 system        | sending SIGTERM to watch.1 (pid 37301)
+18:15:19 system        | sending SIGTERM to schedule.1 (pid 37306)
+18:15:19 system        | schedule.1 stopped (rc=-15)
+18:15:19 redis_cache.1 | 37304:signal-handler (1756644319) Received SIGTERM scheduling shutdown...
+18:15:19 redis_queue.1 | 37302:signal-handler (1756644319) Received SIGTERM scheduling shutdown...
+18:15:19 redis_cache.1 | 37304:M 31 Aug 2025 18:15:19.038 * User requested shutdown...
+18:15:19 redis_cache.1 | 37304:M 31 Aug 2025 18:15:19.038 * Removing the pid file.
+18:15:19 redis_cache.1 | 37304:M 31 Aug 2025 18:15:19.039 # Redis is now ready to exit, bye bye...
+18:15:19 system        | socketio.1 stopped (rc=-15)
+18:15:19 system        | redis_cache.1 stopped (rc=0)
+18:15:19 redis_queue.1 | 37302:M 31 Aug 2025 18:15:19.046 * User requested shutdown...
+18:15:19 redis_queue.1 | 37302:M 31 Aug 2025 18:15:19.046 * Saving the final RDB snapshot before exiting.
+18:15:19 system        | watch.1 stopped (rc=-15)
+18:15:19 redis_queue.1 | 37302:M 31 Aug 2025 18:15:19.052 * DB saved on disk
+18:15:19 redis_queue.1 | 37302:M 31 Aug 2025 18:15:19.052 * Removing the pid file.
+18:15:19 redis_queue.1 | 37302:M 31 Aug 2025 18:15:19.053 # Redis is now ready to exit, bye bye...
+18:15:19 system        | redis_queue.1 stopped (rc=0)
+18:15:19 system        | web.1 stopped (rc=0)

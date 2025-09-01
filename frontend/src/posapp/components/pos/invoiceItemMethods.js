@@ -183,11 +183,21 @@ export default {
 
 	// Load an invoice (or return invoice) from data, set all fields accordingly
 	async load_invoice(data = {}) {
+		console.log("=== LOAD_INVOICE START ===");
 		console.log("load_invoice called with data:", {
 			is_return: data.is_return,
 			return_against: data.return_against,
 			customer: data.customer,
 			items_count: data.items ? data.items.length : 0,
+			source_orders: data.source_orders,
+			multi_order_names: data.multi_order_names,
+			is_multi_order_consolidation: data.is_multi_order_consolidation
+		});
+
+		console.log("Raw data multi-order fields before clear_invoice:", {
+			source_orders: data.source_orders,
+			multi_order_names: data.multi_order_names,
+			is_multi_order_consolidation: data.is_multi_order_consolidation
 		});
 
 		this.clear_invoice();
@@ -207,7 +217,16 @@ export default {
 			this.invoiceTypes = ["Return"];
 		}
 
-		this.invoice_doc = data;
+		// CRITICAL: Deep clone the data to prevent reference issues
+		this.invoice_doc = JSON.parse(JSON.stringify(data));
+		console.log("=== DEBUG: After deep cloning to this.invoice_doc ===");
+		console.log("this.invoice_doc now contains:", {
+			name: this.invoice_doc.name,
+			doctype: this.invoice_doc.doctype,
+			source_orders: this.invoice_doc.source_orders,
+			multi_order_names: this.invoice_doc.multi_order_names,
+			is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation
+		});
 		this.items = data.items || [];
 		this.packed_items = data.packed_items || [];
 		console.log("Items set:", this.items.length, "items");
@@ -538,7 +557,18 @@ export default {
 			console.log("Original this.invoice_doc:", {
 				name: this.invoice_doc.name,
 				doctype: this.invoice_doc.doctype,
-				docstatus: this.invoice_doc.docstatus
+				docstatus: this.invoice_doc.docstatus,
+				source_orders: this.invoice_doc.source_orders,
+				multi_order_names: this.invoice_doc.multi_order_names,
+				is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation
+			});
+			console.log("Copied doc after spread:", {
+				name: doc.name,
+				doctype: doc.doctype,
+				docstatus: doc.docstatus,
+				source_orders: doc.source_orders,
+				multi_order_names: doc.multi_order_names,
+				is_multi_order_consolidation: doc.is_multi_order_consolidation
 			});
 		}
 
@@ -824,6 +854,52 @@ export default {
 				doc.expected_preparation_time = this.selected_order_type.default_preparation_time;
 			}
 		}
+
+		// CRITICAL: Preserve multi-order consolidation fields
+		console.log("=== INVOICE_ITEM_METHODS get_invoice_doc - Multi-order field preservation ===");
+		console.log("this.invoice_doc multi-order fields:", {
+			source_orders: this.invoice_doc.source_orders,
+			multi_order_names: this.invoice_doc.multi_order_names,
+			is_multi_order_consolidation: this.invoice_doc.is_multi_order_consolidation,
+			is_multi_order_edit: this.invoice_doc.is_multi_order_edit
+		});
+		
+		if (this.invoice_doc.source_orders) {
+			doc.source_orders = this.invoice_doc.source_orders;
+			console.log("Preserved source_orders:", doc.source_orders);
+		} else {
+			console.log("WARNING: source_orders not found in this.invoice_doc");
+		}
+		if (this.invoice_doc.multi_order_names) {
+			doc.multi_order_names = this.invoice_doc.multi_order_names;
+			console.log("Preserved multi_order_names:", doc.multi_order_names);
+		} else {
+			console.log("WARNING: multi_order_names not found in this.invoice_doc");
+		}
+		if (this.invoice_doc.is_multi_order_consolidation) {
+			doc.is_multi_order_consolidation = this.invoice_doc.is_multi_order_consolidation;
+			console.log("Preserved is_multi_order_consolidation:", doc.is_multi_order_consolidation);
+		} else {
+			console.log("WARNING: is_multi_order_consolidation not found in this.invoice_doc");
+		}
+		if (this.invoice_doc.is_multi_order_edit) {
+			doc.is_multi_order_edit = this.invoice_doc.is_multi_order_edit;
+			console.log("Preserved is_multi_order_edit:", doc.is_multi_order_edit);
+		} else {
+			console.log("INFO: is_multi_order_edit not found in this.invoice_doc (may be normal)");
+		}
+
+		console.log("=== DEBUG: get_invoice_doc - final doc before return ===");
+		console.log("Final doc before return:", {
+			name: doc.name,
+			doctype: doc.doctype,
+			docstatus: doc.docstatus,
+			source_orders: doc.source_orders,
+			multi_order_names: doc.multi_order_names,
+			is_multi_order_consolidation: doc.is_multi_order_consolidation,
+			customer: doc.customer,
+			grand_total: doc.grand_total
+		});
 
 		return doc;
 	},
@@ -1274,11 +1350,48 @@ export default {
 			async: false,
 			callback: function (r) {
 				if (r.message) {
-					vm.invoice_doc = r.message;
-					vm.eventBus.emit("show_message", {
-						title: __("Restaurant order {0} created successfully", [r.message.name]),
-						color: "success",
-					});
+					// Handle new response format that may include KOT data
+					if (r.message.sales_order) {
+						// New format with auto-print KOT data
+						vm.invoice_doc = r.message.sales_order;
+						
+						// Auto-print KOT if enabled
+						if (r.message.auto_print_kot && r.message.kot_data) {
+							try {
+								// Import KOT print function dynamically
+								import("../../plugins/kot_print.js").then(module => {
+									if (vm.pos_profile.posa_silent_print) {
+										module.printKOTSilent(r.message.kot_data);
+									} else {
+										module.printKOTWithPreview(r.message.kot_data);
+									}
+								});
+								
+								vm.eventBus.emit("show_message", {
+									title: __("Restaurant order {0} created and KOT printed", [vm.invoice_doc.name]),
+									color: "success",
+								});
+							} catch (kotError) {
+								console.error("Auto KOT print failed:", kotError);
+								vm.eventBus.emit("show_message", {
+									title: __("Restaurant order {0} created (KOT print failed)", [vm.invoice_doc.name]),
+									color: "warning",
+								});
+							}
+						} else {
+							vm.eventBus.emit("show_message", {
+								title: __("Restaurant order {0} created successfully", [vm.invoice_doc.name]),
+								color: "success",
+							});
+						}
+					} else {
+						// Original format (just sales order)
+						vm.invoice_doc = r.message;
+						vm.eventBus.emit("show_message", {
+							title: __("Restaurant order {0} created successfully", [r.message.name]),
+							color: "success",
+						});
+					}
 				} else {
 					vm.eventBus.emit("show_message", {
 						title: __("Error creating restaurant order"),

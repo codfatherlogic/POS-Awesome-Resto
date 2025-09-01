@@ -321,6 +321,7 @@
 		<InvoiceSummary
 			:pos_profile="pos_profile"
 			:invoice_doc="invoice_doc"
+			:items="items"
 			:total_qty="total_qty"
 			:additional_discount="additional_discount"
 			:additional_discount_percentage="additional_discount_percentage"
@@ -339,6 +340,7 @@
 			@load-drafts="get_draft_invoices"
 			@select-order="get_draft_orders"
 			@show-orders="show_restaurant_orders"
+			@print-kot="print_kot"
 			@submit-order="submit_restaurant_order"
 			@cancel-sale="cancel_dialog = true"
 			@open-returns="open_returns"
@@ -364,6 +366,7 @@ import invoiceComputed from "./invoiceComputed";
 import invoiceWatchers from "./invoiceWatchers";
 import offerMethods from "./invoiceOfferMethods";
 import shortcutMethods from "./invoiceShortcuts";
+import { printKOTHTML } from "../../plugins/kot_print.js";
 
 export default {
 	name: "POSInvoice",
@@ -1040,7 +1043,7 @@ export default {
 
 			// If items already exist, update the invoice on the server so that
 			// the document currency and rates remain consistent
-			if (this.items.length) {
+			if (this.items && this.items.length) {
 				const doc = this.get_invoice_doc();
 				doc.currency = this.selected_currency;
 				doc.price_list_currency = priceListCurrency || this.pos_profile.currency;
@@ -1060,7 +1063,7 @@ export default {
 
 		async update_exchange_rate_on_server() {
 			if (this.conversion_rate) {
-				if (!this.items.length) {
+				if (!this.items || !this.items.length) {
 					this.sync_exchange_rate();
 					return;
 				}
@@ -1284,29 +1287,79 @@ export default {
 			this.eventBus.emit("open_restaurant_orders");
 		},
 
-		async submit_restaurant_order() {
+		async print_kot() {
 			// Validate requirements first
 			if (!this.validate_restaurant_selection()) {
 				return;
 			}
 
-			if (!this.customer) {
+			if (!this.items || !this.items.length) {
 				this.eventBus.emit("show_message", {
-					title: __("Please select a customer"),
-					color: "error",
-				});
-				return;
-			}
-
-			if (!this.items.length) {
-				this.eventBus.emit("show_message", {
-					title: __("Please add items to the order"),
+					title: __("Please add items to print KOT"),
 					color: "error",
 				});
 				return;
 			}
 
 			try {
+				// Get the current order data for KOT
+				const doc = this.get_invoice_doc();
+				
+				// Add restaurant-specific data
+				if (this.selected_order_type) {
+					doc.restaurant_order_type = this.selected_order_type.name;
+				}
+				if (this.selected_table) {
+					doc.table_number = this.selected_table.table_number;
+				}
+
+				// Call backend to generate KOT HTML
+				const response = await frappe.call({
+					method: "posawesome.posawesome.api.restaurant_orders.generate_kot_html",
+					args: {
+						order_data: doc,
+					},
+				});
+
+				if (response.message) {
+					// Use KOT print function
+					printKOTHTML(response.message, this.pos_profile.posa_silent_print);
+
+					this.eventBus.emit("show_message", {
+						title: __("KOT sent to kitchen successfully"),
+						color: "success",
+					});
+				}
+			} catch (error) {
+				console.error("KOT Print Error:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Failed to print KOT: {0}", [error.message || "Unknown error"]),
+					color: "error",
+				});
+			}
+		},
+
+		async submit_restaurant_order() {
+			// Validate requirements first
+			if (!this.validate_restaurant_selection()) {
+				return;
+			}
+
+		if (!this.customer) {
+			this.eventBus.emit("show_message", {
+				title: __("Please select a customer"),
+				color: "error",
+			});
+			return;
+		}
+
+		if (!this.items || !this.items.length) {
+			this.eventBus.emit("show_message", {
+				title: __("Please add items to the order"),
+				color: "error",
+			});
+			return;
+		}			try {
 				// First create/update the order
 				const doc = this.get_invoice_doc();
 				let order_doc;
@@ -1539,7 +1592,7 @@ export default {
 			console.log("Invoice state after loading return:", {
 				invoiceType: this.invoiceType,
 				is_return: this.invoice_doc.is_return,
-				items: this.items.length,
+				items: this.items ? this.items.length : 0,
 				customer: this.customer,
 			});
 		});

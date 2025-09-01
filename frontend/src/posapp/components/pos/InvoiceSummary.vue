@@ -145,6 +145,21 @@
 							{{ __("Show Orders") }}
 						</v-btn>
 					</v-col>
+					<!-- KOT Print Button for Restaurant Mode -->
+					<v-col cols="6" v-if="pos_profile.posa_enable_restaurant_mode && items && items.length > 0">
+						<v-btn
+							block
+							color="orange-darken-1"
+							theme="dark"
+							prepend-icon="mdi-silverware-fork-knife"
+							@click="handlePrintKOT"
+							class="summary-btn kot-btn"
+							:loading="kotPrintLoading"
+							elevation="2"
+						>
+							{{ __("🍳 Print KOT") }}
+						</v-btn>
+					</v-col>
 					<!-- Only show Submit Order for new orders (no existing order name) -->
 					<v-col cols="6" v-if="pos_profile.posa_enable_restaurant_mode && !hasExistingOrder">
 						<v-btn
@@ -224,6 +239,7 @@ export default {
 	props: {
 		pos_profile: Object,
 		invoice_doc: Object,
+		items: Array,
 		total_qty: [Number, String],
 		additional_discount: Number,
 		additional_discount_percentage: Number,
@@ -248,6 +264,7 @@ export default {
 			returnsLoading: false,
 			printLoading: false,
 			paymentLoading: false,
+			kotPrintLoading: false,
 		};
 	},
 	emits: [
@@ -258,6 +275,7 @@ export default {
 		"load-drafts",
 		"select-order",
 		"show-orders",
+		"print-kot",
 		"submit-order",
 		"cancel-sale",
 		"open-returns",
@@ -328,6 +346,15 @@ export default {
 				await this.$emit("show-orders");
 			} finally {
 				this.showOrdersLoading = false;
+			}
+		},
+
+		async handlePrintKOT() {
+			this.kotPrintLoading = true;
+			try {
+				await this.$emit("print-kot");
+			} finally {
+				this.kotPrintLoading = false;
 			}
 		},
 
@@ -441,6 +468,21 @@ export default {
 	background: linear-gradient(135deg, #45a049, #3d8b40) !important;
 	box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4) !important;
 	transform: translateY(-2px);
+}
+
+/* Special styling for the KOT button */
+.kot-btn {
+	font-weight: 600 !important;
+	background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+	box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
+	border: 2px solid rgba(255, 152, 0, 0.2) !important;
+}
+
+.kot-btn:hover {
+	background: linear-gradient(135deg, #f57c00, #ef6c00) !important;
+	box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4) !important;
+	transform: translateY(-2px);
+	border-color: rgba(255, 152, 0, 0.4) !important;
 }
 
 /* Enhanced field styling */

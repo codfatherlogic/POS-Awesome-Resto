@@ -149,6 +149,19 @@
 									</template>
 									
 									<template v-slot:item.actions="{ item }">
+										<!-- Reprint KOT Button - Available for all orders -->
+										<v-btn
+											size="small"
+											color="orange-darken-1"
+											variant="tonal"
+											@click="reprint_kot(item)"
+											class="mr-1"
+											:loading="kotReprintLoading[item.name]"
+										>
+											<v-icon size="small">mdi-silverware-fork-knife</v-icon>
+											{{ __("Reprint KOT") }}
+										</v-btn>
+										
 										<v-btn
 											v-if="canEdit(item)"
 											size="small"
@@ -159,6 +172,19 @@
 										>
 											<v-icon size="small">mdi-pencil</v-icon>
 											{{ __("Edit") }}
+										</v-btn>
+										
+										<!-- Void Items Button - Available for draft orders -->
+										<v-btn
+											v-if="canEdit(item)"
+											size="small"
+											color="warning"
+											variant="tonal"
+											@click="void_items(item)"
+											class="mr-1"
+										>
+											<v-icon size="small">mdi-close-circle</v-icon>
+											{{ __("Void Items") }}
 										</v-btn>
 										
 										<v-btn
@@ -332,6 +358,76 @@
 				</v-card-actions>
 			</v-card>
 		</v-dialog>
+
+		<!-- Void Items Dialog -->
+		<v-dialog v-model="voidItemsDialog" max-width="800px">
+			<v-card>
+				<v-card-title class="d-flex align-center">
+					<span class="text-h6 text-warning">{{ __("Void Items") }}</span>
+					<v-spacer></v-spacer>
+					<v-btn
+						icon="mdi-close"
+						variant="text"
+						density="compact"
+						@click="voidItemsDialog = false"
+					></v-btn>
+				</v-card-title>
+				
+				<v-card-text v-if="selectedOrderForVoid">
+					<v-container>
+						<v-row class="mb-4">
+							<v-col cols="12">
+								<v-alert type="warning" border="start" variant="tonal">
+									{{ __("Select items to void from order: ") + selectedOrderForVoid.name }}
+								</v-alert>
+							</v-col>
+						</v-row>
+						
+						<v-row>
+							<v-col cols="12">
+								<v-data-table
+									:headers="voidItemHeaders"
+									:items="selectedOrderForVoid.items || []"
+									item-value="idx"
+									show-select
+									v-model="selectedItemsToVoid"
+									density="compact"
+									:loading="voidLoading"
+									return-object
+								>
+									<template v-slot:item.rate="{ item }">
+										{{ formatCurrency(item.rate) }}
+									</template>
+									<template v-slot:item.amount="{ item }">
+										{{ formatCurrency(item.amount) }}
+									</template>
+								</v-data-table>
+							</v-col>
+						</v-row>
+					</v-container>
+				</v-card-text>
+				
+				<v-card-actions>
+					<v-spacer></v-spacer>
+					<v-btn
+						color="grey"
+						variant="text"
+						@click="voidItemsDialog = false"
+					>
+						{{ __("Cancel") }}
+					</v-btn>
+					<v-btn
+						color="warning"
+						variant="flat"
+						@click="confirmVoidItems(selectedOrderForVoid, selectedItemsToVoid)"
+						:loading="voidLoading"
+						:disabled="!selectedItemsToVoid || selectedItemsToVoid.length === 0"
+					>
+						{{ __("Void Selected Items") }}
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
 	</v-row>
 </template>
 
@@ -341,21 +437,52 @@ import format from "../../format";
 export default {
 	mixins: [format],
 	data() {
-	return {
-		ordersDialog: false,
-		pos_profile: {},
-		pos_opening_shift: null,
-		selected: [],
-		orders_data: [],
-		filtered_orders: [],
-		loading: false,
-		converting: false,
-		multiSelectMode: false,
-		expanded: [], // Track expanded rows
-		filter_order_type: null,
-		filter_status: null,
-		filter_date: null,
-		search_text: "",
+		return {
+			ordersDialog: false,
+			pos_profile: {},
+			pos_opening_shift: null,
+			selected: [],
+			orders_data: [],
+			filtered_orders: [],
+			loading: false,
+			converting: false,
+			multiSelectMode: false,
+			expanded: [], // Track expanded rows
+			filter_order_type: null,
+			filter_status: null,
+			filter_date: null,
+			search_text: "",
+			kotReprintLoading: {}, // Track loading state for each order's KOT reprint
+			voidItemsDialog: false,
+			selectedOrderForVoid: null,
+			voidLoading: false,
+			selectedItemsToVoid: [],
+			voidItemHeaders: [
+				{
+					title: __("Item"),
+					key: "item_name",
+					align: "start",
+					sortable: false,
+				},
+				{
+					title: __("Qty"),
+					key: "qty",
+					align: "center",
+					sortable: false,
+				},
+				{
+					title: __("Rate"),
+					key: "rate",
+					align: "end",
+					sortable: false,
+				},
+				{
+					title: __("Amount"),
+					key: "amount",
+					align: "end",
+					sortable: false,
+				},
+			],
 			headers: [
 				{
 					title: __("Order"),
@@ -430,6 +557,16 @@ export default {
 			if (this.ordersDialog) {
 				this.fetch_orders();
 			}
+		},
+		selectedItemsToVoid: {
+			handler(newVal, oldVal) {
+				console.log("selectedItemsToVoid changed:", {
+					new: newVal,
+					old: oldVal,
+					count: newVal?.length || 0
+				});
+			},
+			deep: true
 		},
 	},
 	methods: {
@@ -1057,6 +1194,177 @@ export default {
 		formatDate(date) {
 			if (!date) return "";
 			return frappe.datetime.str_to_user(date);
+		},
+
+		async reprint_kot(order) {
+			// Set loading state for this specific order
+			this.$set(this.kotReprintLoading, order.name, true);
+			
+			try {
+				console.log("Reprinting KOT for order:", order.name);
+				
+				// Call the KOT generation API to get HTML for reprint
+				const response = await frappe.call({
+					method: "posawesome.posawesome.api.restaurant_orders.reprint_kot",
+					args: {
+						order_name: order.name,
+					},
+				});
+
+				if (response.message) {
+					// Import the KOT print module dynamically
+					const kotPrintModule = await import("../../plugins/kot_print.js");
+					
+					// Print the KOT HTML directly
+					await kotPrintModule.printKOTHTML(response.message);
+					
+					this.eventBus.emit("show_message", {
+						title: __("KOT reprinted successfully"),
+						color: "success",
+					});
+				}
+			} catch (error) {
+				console.error("Error reprinting KOT:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error reprinting KOT: ") + (error.message || error),
+					color: "error",
+				});
+			} finally {
+				this.$set(this.kotReprintLoading, order.name, false);
+			}
+		},
+
+		async void_items(order) {
+			console.log("Opening void items dialog for order:", order);
+			
+			try {
+				// Fetch the complete order data with items
+				const orderResult = await frappe.call({
+					method: "frappe.client.get",
+					args: {
+						doctype: "Sales Order",
+						name: order.name,
+					},
+				});
+
+				if (orderResult.message) {
+					this.selectedOrderForVoid = orderResult.message;
+					this.selectedItemsToVoid = []; // Clear previous selection
+					this.voidLoading = false; // Reset loading state
+					this.voidItemsDialog = true;
+				} else {
+					throw new Error("Failed to fetch order details");
+				}
+			} catch (error) {
+				console.error("Error fetching order for voiding:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error fetching order details"),
+					color: "error",
+				});
+			}
+		},
+
+		async confirmVoidItems(order, itemsToVoid) {
+			this.voidLoading = true;
+			
+			try {
+				console.log("Voiding items from order:", order.name, itemsToVoid);
+				
+				if (!itemsToVoid || itemsToVoid.length === 0) {
+					this.eventBus.emit("show_message", {
+						title: __("Please select items to void"),
+						color: "warning",
+					});
+					return;
+				}
+				
+				// Map selected items to their idx values for backend processing
+				const itemsData = itemsToVoid.map(item => ({
+					idx: item.idx,
+					item_code: item.item_code,
+					qty: item.qty
+				}));
+				
+				// Call backend to void specific items
+				const response = await frappe.call({
+					method: "posawesome.posawesome.api.restaurant_orders.void_order_items",
+					args: {
+						order_name: order.name,
+						items_to_void: itemsData,
+					},
+				});
+
+				if (response.message) {
+					this.eventBus.emit("show_message", {
+						title: __("Items voided successfully"),
+						color: "success",
+					});
+					
+					// Clear expanded rows to force fresh data load when expanded again
+					this.expanded = [];
+					
+					// Clear the cached order data to ensure fresh fetch
+					this.selectedOrderForVoid = null;
+					
+					// Force a complete refresh of the orders list
+					await this.fetch_orders();
+					
+					// Also update the order in our local data if it exists
+					const orderIndex = this.orders_data.findIndex(o => o.name === order.name);
+					if (orderIndex !== -1) {
+						// Fetch the updated order data
+						try {
+							const updatedOrderResult = await frappe.call({
+								method: "frappe.client.get",
+								args: {
+									doctype: "Sales Order",
+									name: order.name,
+								},
+							});
+							if (updatedOrderResult.message) {
+								// Update the order in our local data array
+								this.orders_data[orderIndex] = {
+									...this.orders_data[orderIndex],
+									items: updatedOrderResult.message.items,
+									grand_total: updatedOrderResult.message.grand_total,
+									net_total: updatedOrderResult.message.net_total,
+								};
+								// Refilter to update the display
+								this.filter_orders();
+							}
+						} catch (fetchError) {
+							console.log("Could not update local order data:", fetchError);
+						}
+					}
+					
+					// Force refresh the Sales Order document if it's open in Frappe
+					try {
+						if (window.frappe && window.frappe.get_route && window.frappe.get_route()[0] === 'Form' && window.frappe.get_route()[1] === 'Sales Order') {
+							// If a Sales Order form is currently open, refresh it
+							const current_route = window.frappe.get_route();
+							if (current_route[2] === order.name) {
+								// This is the same order that was voided, refresh the form
+								window.frappe.set_route('Form', 'Sales Order', order.name);
+							}
+						}
+					} catch (refresh_error) {
+						console.log("Could not refresh Sales Order form:", refresh_error);
+					}
+					
+					// Close the void dialog
+					this.voidItemsDialog = false;
+					this.selectedOrderForVoid = null;
+					this.selectedItemsToVoid = [];
+				}
+			} catch (error) {
+				console.error("Error voiding items:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error voiding items: ") + (error.message || error),
+					color: "error",
+				});
+			} finally {
+				this.voidLoading = false;
+			}
 		},
 	},
 	
