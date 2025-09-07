@@ -452,9 +452,8 @@ def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, 
 		"restaurant_order_type": ["is", "set"]  # Only get orders that have restaurant_order_type
 	}
 	
-	# Debug logging
-	frappe.log_error(f"Restaurant Orders API called with: pos_opening_shift={pos_opening_shift}, order_type={order_type}, status={status}, date_filter={date_filter}", "Restaurant Orders Debug")
-	frappe.log_error(f"Initial filters: {filters}", "Restaurant Orders Debug")
+	# Debug logging (shortened to avoid length issues)
+	frappe.log_error(f"Restaurant Orders API called with status={status}, date={date_filter}", "Restaurant Orders API")
 	
 	# Only filter by pos_opening_shift if the field exists in Sales Order
 	if pos_opening_shift:
@@ -489,18 +488,12 @@ def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, 
 			from frappe.utils import getdate
 			parsed_date = getdate(date_filter)
 			filters["transaction_date"] = parsed_date
-			frappe.log_error(f"Date filter parsed: {date_filter} -> {parsed_date}", "Restaurant Orders Debug")
 		except:
-			frappe.log_error(f"Failed to parse date filter: {date_filter}", "Restaurant Orders Debug")
 			filters["transaction_date"] = date_filter
 	else:
 		# Default to today's orders if no specific date is provided
 		from frappe.utils import today
 		filters["transaction_date"] = [">=", today()]
-	
-	frappe.log_error(f"Final filters before query: {filters}", "Restaurant Orders Debug")
-	
-	frappe.log_error(f"Final filters: {filters}", "Restaurant Orders Debug")
 	
 	orders = frappe.get_all(
 		"Sales Order",
@@ -662,6 +655,15 @@ def generate_kot_print(order_data):
 	if not order_data.get("items"):
 		frappe.throw(_("No items found for KOT printing"))
 	
+	# Get print width from POS profile if available
+	print_width = "58mm"  # Default width
+	try:
+		pos_profile_name = order_data.get("pos_profile")
+		if pos_profile_name:
+			print_width = frappe.db.get_value("POS Profile", pos_profile_name, "posa_kot_print_width") or "58mm"
+	except:
+		pass  # Use default if profile not found
+	
 	order_type_name = ""
 	if order_data.get("restaurant_order_type"):
 		try:
@@ -679,7 +681,8 @@ def generate_kot_print(order_data):
 		"datetime": now_datetime().strftime("%Y-%m-%d %H:%M:%S"),
 		"items": [],
 		"special_notes": order_data.get("posa_notes") or "",
-		"total_items": 0
+		"total_items": 0,
+		"print_width": print_width  # Add print width to kot_data
 	}
 	
 	# Process items for KOT
@@ -702,6 +705,14 @@ def generate_kot_print(order_data):
 def generate_void_kot_print(sales_order, voided_items):
 	"""Generate Kitchen Order Ticket (KOT) print data for voided items"""
 	
+	# Get print width from POS profile if available
+	print_width = "58mm"  # Default width
+	try:
+		if hasattr(sales_order, 'pos_profile') and sales_order.pos_profile:
+			print_width = frappe.db.get_value("POS Profile", sales_order.pos_profile, "posa_kot_print_width") or "58mm"
+	except:
+		pass  # Use default if profile not found
+	
 	# Get order type name
 	order_type_name = ""
 	if sales_order.restaurant_order_type:
@@ -723,7 +734,8 @@ def generate_void_kot_print(sales_order, voided_items):
 		"special_notes": _("VOID - Items cancelled from order"),
 		"total_voided_items": 0,
 		"is_void": True,
-		"void_reason": _("Items voided by staff")
+		"void_reason": _("Items voided by staff"),
+		"print_width": print_width  # Add print width to void_kot_data
 	}
 	
 	# Process voided items for KOT
@@ -758,7 +770,8 @@ def reprint_kot(order_name):
 			"table_number": sales_order.table_number,
 			"restaurant_order_type": sales_order.restaurant_order_type,
 			"order_date": sales_order.transaction_date or sales_order.order_date,
-			"name": sales_order.name
+			"name": sales_order.name,
+			"pos_profile": getattr(sales_order, 'pos_profile', None)  # Include POS profile for print width
 		}
 		
 		# Convert sales order items to the format expected

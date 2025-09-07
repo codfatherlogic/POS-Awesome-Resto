@@ -52391,7 +52391,7 @@ const VD = /* @__PURE__ */ nn(LZ, [["render", NZ], ["__scopeId", "data-v-25095ee
     });
   },
   async mounted() {
-    if (!this.pos_profile || !this.pos_profile.name)
+    if (this.items = [], console.log("[ItemsSelector] mounted: cleared items array to prevent duplicates"), !this.pos_profile || !this.pos_profile.name)
       try {
         frappe.boot && frappe.boot.pos_profile ? this.pos_profile = frappe.boot.pos_profile : window.cur_pos && window.cur_pos.pos_profile && (this.pos_profile = window.cur_pos.pos_profile);
       } catch (e) {
@@ -52981,7 +52981,7 @@ function dee(e, t, n, a, r, i) {
     }, null, 8, ["scan-type", "onBarcodeScanned"])) : ge("", !0)
   ], 4);
 }
-const fee = /* @__PURE__ */ nn(UZ, [["render", dee], ["__scopeId", "data-v-70b7b542"]]), mee = {
+const fee = /* @__PURE__ */ nn(UZ, [["render", dee], ["__scopeId", "data-v-45fcae0d"]]), mee = {
   data: () => ({
     customerDialog: !1,
     confirmDialog: !1,
@@ -57037,7 +57037,7 @@ const { setSerialNo: kne, setBatchQty: Sne } = vne(), { updateDiscountAmount: Cn
             color: "success"
           }), r && i)
             try {
-              const { printKot: o } = await import("./kot_print-C5g1S_KE.js");
+              const { printKot: o } = await import("./kot_print-MHdNXsuH.js");
               await o(r);
             } catch (o) {
               console.error("Error auto-printing KOT:", o);
@@ -57050,7 +57050,7 @@ const { setSerialNo: kne, setBatchQty: Sne } = vne(), { updateDiscountAmount: Cn
             );
           }))
             try {
-              const { printKot: l } = await import("./kot_print-C5g1S_KE.js");
+              const { printKot: l } = await import("./kot_print-MHdNXsuH.js");
               await l(r);
             } catch (l) {
               console.error("Error printing KOT:", l), t.eventBus.emit("show_message", {
@@ -59095,7 +59095,7 @@ const Mne = {
           color: "success"
         });
         try {
-          const { printKot: i } = await import("./kot_print-C5g1S_KE.js"), o = {
+          const { printKot: i } = await import("./kot_print-MHdNXsuH.js"), o = {
             order_name: e,
             table_number: this.restaurant_add_items_context.table_number,
             order_type: this.restaurant_add_items_context.order_type,
@@ -63896,7 +63896,7 @@ const cae = {
             }), console.log("Payment amounts successfully restored to consolidated invoice")), this.invoiceType = "Invoice", this.eventBus.emit("change_invoice_type", "Invoice"), this.eventBus.emit("show_message", {
               title: __("{0} orders submitted and consolidated into invoice for payment", [this.invoice_doc.multi_order_names.length]),
               color: "success"
-            });
+            }), console.log("Multi-order consolidation complete, continuing with payment submission for consolidated invoice:", this.invoice_doc.name);
           else
             throw new Error("Failed to submit multiple orders and create invoice");
         } catch (o) {
@@ -65682,7 +65682,7 @@ function Iae(e, t, n, a, r, i) {
     }, 8, ["modelValue"])
   ]);
 }
-const Eae = /* @__PURE__ */ nn(cae, [["render", Iae], ["__scopeId", "data-v-a9fa995f"]]), Pae = {
+const Eae = /* @__PURE__ */ nn(cae, [["render", Iae], ["__scopeId", "data-v-dbed912d"]]), Pae = {
   mixins: [Oi],
   data: () => ({
     loading: !1,
@@ -66661,7 +66661,8 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
       expanded: [],
       // Track expanded rows
       filter_order_type: null,
-      filter_status: null,
+      filter_status: "Draft",
+      // Default to Draft status
       filter_date: null,
       search_text: "",
       headers: [
@@ -66782,17 +66783,17 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
               docstatus: n.docstatus
             });
           });
-          const t = e.message.filter((n) => !n.name || !n.name.startsWith("SAL-ORD-"));
-          t.length > 0 && (console.error("CRITICAL: API returned orders with invalid names:"), t.forEach((n) => {
+          const t = e.message.filter((n) => !n.name || n.name.trim() === "");
+          t.length > 0 && (console.error("CRITICAL: API returned orders with empty names:"), t.forEach((n) => {
             console.error("  INVALID ORDER:", n);
           }));
         }
         if (console.log("=== END FETCH ORDERS DEBUG ==="), console.log("API response:", e), e.message) {
           const t = e.message.filter((a) => {
-            const r = a.name && a.name.startsWith("SAL-ORD-");
+            const r = a.name && a.name.trim() !== "";
             return r || console.warn("Filtering out invalid order entry:", a.name), r;
           });
-          this.orders_data = t, console.log("Orders data (filtered):", this.orders_data), this.filter_orders();
+          this.orders_data = t, console.log("Orders data (all naming series accepted):", this.orders_data), this.filter_orders();
           const n = [...new Set(t.map((a) => a.order_type_name).filter(Boolean))];
           this.order_type_options = n.map((a) => ({ title: a, value: a }));
         }
@@ -66860,13 +66861,13 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
       return e.docstatus === 0;
     },
     canCancel(e) {
-      return e.docstatus === 1;
+      return e.docstatus === 1 && e.per_billed < 100;
     },
     canDelete(e) {
       return e.docstatus === 0;
     },
     canAddItems(e) {
-      return (e.docstatus === 0 || e.docstatus === 1) && e.table_number;
+      return (e.docstatus === 0 || e.docstatus === 1) && e.table_number && e.per_billed < 100;
     },
     canConvertMultipleToInvoice() {
       if (!this.selected || this.selected.length === 0)
@@ -66908,15 +66909,16 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
     async convert_to_payment() {
       if (!this.selected.length) return;
       const e = this.selected[0];
-      console.log("=== CONVERT TO PAYMENT DEBUG ==="), console.log("Selected order object:", JSON.stringify(e, null, 2)), console.log("Order name:", e.name), console.log("Order doctype (if available):", e.doctype), console.log("All orders data:", JSON.stringify(this.orders_data.map((n) => ({ name: n.name, docstatus: n.docstatus })), null, 2)), console.log("=== END DEBUG ===");
+      console.log("=== CONVERT TO PAYMENT DEBUG ==="), console.log("Selected order object:", JSON.stringify(e, null, 2)), console.log("Order name:", e.name), console.log("Order doctype (if available):", e.doctype), console.log("All orders data:", JSON.stringify(this.orders_data.map((a) => ({ name: a.name, docstatus: a.docstatus })), null, 2)), console.log("=== END DEBUG ===");
       let t = e.name;
-      if (!e.name || !e.name.startsWith("SAL-ORD-")) {
-        console.error("CRITICAL: Selected order has invalid name, attempting to find correct order...");
-        const n = this.orders_data.find(
-          (a) => a.customer === e.customer && Math.abs(a.grand_total - e.grand_total) < 0.01 && a.name && a.name.startsWith("SAL-ORD-")
+      if (!(e.name && this.orders_data.some((a) => a.name === e.name) && e.restaurant_order_type)) {
+        console.error("CRITICAL: Selected order is invalid, attempting to find correct order...");
+        const a = this.orders_data.find(
+          (r) => r.customer === e.customer && Math.abs(r.grand_total - e.grand_total) < 0.01 && r.restaurant_order_type
+          // Must be a restaurant order
         );
-        if (n)
-          console.log("RECOVERY: Found correct order:", n.name), t = n.name, Object.assign(e, n);
+        if (a)
+          console.log("RECOVERY: Found correct order:", a.name), t = a.name, Object.assign(e, a);
         else {
           console.error("RECOVERY FAILED: Could not find correct order"), this.eventBus.emit("show_message", {
             title: __("Invalid order format: {0}. Please refresh the orders list and try again.", [e.name || "undefined"]),
@@ -66929,16 +66931,16 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
       try {
         if (console.log("Using validated order name:", t), e.docstatus === 0) {
           console.log("Loading draft order into cart for editing:", t);
-          const n = await frappe.call({
+          const a = await frappe.call({
             method: "frappe.client.get",
             args: {
               doctype: "Sales Order",
               name: t
             }
           });
-          if (n.message) {
-            const a = n.message;
-            console.log("Fetched complete order data:", a), this.eventBus.emit("change_invoice_type", "Order"), this.eventBus.emit("load_invoice", a), this.close_dialog(), this.eventBus.emit("show_message", {
+          if (a.message) {
+            const r = a.message;
+            console.log("Fetched complete order data:", r), this.eventBus.emit("change_invoice_type", "Order"), this.eventBus.emit("load_invoice", r), this.close_dialog(), this.eventBus.emit("show_message", {
               title: __("Draft Order {0} loaded for editing. Make changes and click SUBMIT when ready.", [t]),
               color: "success"
             });
@@ -66946,21 +66948,21 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
             throw new Error("Failed to fetch order data");
         } else {
           console.log("Converting submitted order to invoice for payment:", t);
-          const n = await frappe.call({
+          const a = await frappe.call({
             method: "posawesome.posawesome.api.restaurant_orders.convert_order_to_invoice",
             args: {
               sales_order_name: t,
               pos_profile_name: this.pos_profile?.name || null
             }
           });
-          n.message && (this.eventBus.emit("change_invoice_type", "Invoice"), this.eventBus.emit("load_invoice", n.message), this.close_dialog(), this.eventBus.emit("show_message", {
+          a.message && (this.eventBus.emit("change_invoice_type", "Invoice"), this.eventBus.emit("load_invoice", a.message), this.close_dialog(), this.eventBus.emit("show_message", {
             title: __("Order {0} converted to invoice for payment. Review items and click PAY when ready.", [t]),
             color: "success"
           }));
         }
-      } catch (n) {
-        console.error("Failed to convert order to payment", n), this.eventBus.emit("show_message", {
-          title: __("Error converting order to payment: {0}", [n.message || "Unknown error"]),
+      } catch (a) {
+        console.error("Failed to convert order to payment", a), this.eventBus.emit("show_message", {
+          title: __("Error converting order to payment: {0}", [a.message || "Unknown error"]),
           color: "error"
         });
       } finally {
@@ -66969,9 +66971,9 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
     },
     async edit_order(e) {
       try {
-        if (console.log("Loading order for editing:", e.name), !e.name.startsWith("SAL-ORD-")) {
+        if (console.log("Loading order for editing:", e.name), !e.name || !e.restaurant_order_type) {
           this.eventBus.emit("show_message", {
-            title: __("Invalid order format. Expected Sales Order name."),
+            title: __("Invalid order format. Expected valid restaurant order."),
             color: "error"
           });
           return;
@@ -67286,7 +67288,7 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
     },
     async printVoidKot(e) {
       try {
-        const { printVoidKot: t } = await import("./kot_print-C5g1S_KE.js");
+        const { printVoidKot: t } = await import("./kot_print-MHdNXsuH.js");
         t(e, { autoPrint: !0 });
       } catch (t) {
         console.error("Error printing void KOT:", t), this.eventBus.emit("show_message", {
@@ -68150,7 +68152,7 @@ function Cre(e, t, n, a, r, i) {
     _: 1
   });
 }
-const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-dcd69452"]]), xre = {
+const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-0455aa15"]]), xre = {
   mixins: [Oi],
   data: () => ({
     closingDialog: !1,
@@ -72036,7 +72038,7 @@ const poe = {
             } catch (n) {
               console.warn("Failed to cache tax inclusive setting", n);
             }
-            import("./index-BeNPnZfw.js").then((n) => {
+            import("./index-dJPwn0Er.js").then((n) => {
               n && n.setTaxInclusiveSetting && n.setTaxInclusiveSetting(t);
             }).catch(() => {
             });

@@ -494,7 +494,7 @@ export default {
 		multiSelectMode: false,
 		expanded: [], // Track expanded rows
 		filter_order_type: null,
-		filter_status: null,
+		filter_status: "Draft", // Default to Draft status
 		filter_date: null,
 		search_text: "",
 			headers: [
@@ -771,7 +771,8 @@ export default {
 		},
 
 		canCancel(order) {
-			return order.docstatus === 1; // Only submitted orders can be cancelled
+			// Only submitted orders that are not fully billed can be cancelled
+			return order.docstatus === 1 && order.per_billed < 100;
 		},
 
 		canDelete(order) {
@@ -779,9 +780,11 @@ export default {
 		},
 
 		canAddItems(order) {
-			// Allow adding items to both draft and submitted orders that have a table (dine-in orders)
-			// This covers both scenarios: ongoing orders (draft) and completed orders (submitted)
-			return (order.docstatus === 0 || order.docstatus === 1) && order.table_number;
+			// Allow adding items only to orders that are not fully billed and have a table (dine-in orders)
+			// Exclude fully billed orders (per_billed >= 100)
+			return (order.docstatus === 0 || order.docstatus === 1) && 
+			       order.table_number && 
+			       order.per_billed < 100;
 		},
 
 		canConvertMultipleToInvoice() {
