@@ -53006,7 +53006,8 @@ const fee = /* @__PURE__ */ nn(UZ, [["render", dee], ["__scopeId", "data-v-45fca
     gender: "",
     loyalty_points: null,
     loyalty_program: null,
-    hideNonEssential: !1,
+    hideNonEssential: !0,
+    // Default to hiding non-essential fields
     countries: [
       "Afghanistan",
       "Australia",
@@ -53264,7 +53265,7 @@ const fee = /* @__PURE__ */ nn(UZ, [["render", dee], ["__scopeId", "data-v-45fca
   created: function() {
     if (typeof localStorage < "u") {
       const e = localStorage.getItem("posawesome_hide_non_essential_fields");
-      e !== null && (this.hideNonEssential = JSON.parse(e));
+      e !== null ? this.hideNonEssential = JSON.parse(e) : (this.hideNonEssential = !0, localStorage.setItem("posawesome_hide_non_essential_fields", JSON.stringify(!0)));
     }
     this.eventBus.on("open_update_customer", (e) => {
       this.customerDialog = !0, e ? (this.customer_name = e.customer_name, this.customer_id = e.name, this.address_line1 = e.address_line1 || "", this.city = e.city || "", this.country = e.country || this.pos_profile && this.pos_profile.posa_default_country || "Pakistan", this.tax_id = e.tax_id, this.mobile_no = e.mobile_no, this.email_id = e.email_id, this.referral_code = e.referral_code, this.birthday = e.birthday, this.group = e.customer_group, this.territory = e.territory, this.loyalty_points = e.loyalty_points, this.loyalty_program = e.loyalty_program, this.gender = e.gender) : this.country = this.pos_profile && this.pos_profile.posa_default_country || "Pakistan";
@@ -53657,7 +53658,7 @@ function pee(e, t, n, a, r, i) {
     _: 1
   });
 }
-const MD = /* @__PURE__ */ nn(mee, [["render", pee], ["__scopeId", "data-v-a83f8575"]]), vee = {
+const MD = /* @__PURE__ */ nn(mee, [["render", pee], ["__scopeId", "data-v-5d9c4969"]]), vee = {
   props: {
     pos_profile: Object
   },
@@ -57035,7 +57036,13 @@ const { setSerialNo: kne, setBatchQty: Sne } = vne(), { updateDiscountAmount: Cn
           if (n.message.sales_order ? (a = n.message.sales_order, r = n.message.kot_data, i = n.message.auto_print_kot) : a = n.message, t.invoice_doc = a, t.eventBus.emit("show_message", {
             title: __("Restaurant order {0} created successfully", [a.name]),
             color: "success"
-          }), r && i)
+          }), t.pos_profile.posa_enable_restaurant_mode)
+            try {
+              await t.fetch_available_tables();
+            } catch (o) {
+              console.error("Failed to refresh available tables:", o);
+            }
+          if (r && i)
             try {
               const { printKot: o } = await import("./kot_print-MHdNXsuH.js");
               await o(r);
@@ -72038,7 +72045,7 @@ const poe = {
             } catch (n) {
               console.warn("Failed to cache tax inclusive setting", n);
             }
-            import("./index-dJPwn0Er.js").then((n) => {
+            import("./index-EWQAeUYZ.js").then((n) => {
               n && n.setTaxInclusiveSetting && n.setTaxInclusiveSetting(t);
             }).catch(() => {
             });

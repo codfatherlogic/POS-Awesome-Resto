@@ -84,11 +84,28 @@ def create_restaurant_order(order_data):
 				frappe.db.commit()  # Ensure the change is committed
 				frappe.logger().info(f"Successfully occupied table {table_number} with order {sales_order.name}")
 			else:
-				frappe.logger().error(f"Table with number {table_number} not found")
+				# Table not found - this is a critical error for table-required orders
+				error_msg = f"Table with number {table_number} not found"
+				frappe.logger().error(error_msg)
+				if order_type_doc.requires_table:
+					# Cancel the order and throw error for table-required order types
+					if sales_order:
+						frappe.delete_doc("Sales Order", sales_order.name, force=True)
+					frappe.throw(_(error_msg))
 		except Exception as e:
-			frappe.log_error(f"Failed to occupy table {table_number}: {str(e)}")
-			frappe.logger().error(f"Failed to occupy table {table_number}: {str(e)}")
-			# Don't fail the order creation if table occupation fails
+			error_msg = f"Failed to occupy table {table_number}: {str(e)}"
+			frappe.log_error(error_msg)
+			frappe.logger().error(error_msg)
+			if order_type_doc.requires_table:
+				# For table-required orders, table occupation is critical
+				# Cancel the order and throw error
+				if sales_order:
+					try:
+						frappe.delete_doc("Sales Order", sales_order.name, force=True)
+					except:
+						pass  # Order might not exist yet
+				frappe.throw(_("Table occupation failed: {0}").format(str(e)))
+			# For non-table orders, continue without failing
 	
 	# Check if auto-print KOT is enabled and generate KOT data
 	pos_profile_name = order_data.get("pos_profile")

@@ -1295,6 +1295,15 @@ export default {
 						color: "success",
 					});
 
+					// Refresh available tables after successful order creation
+					if (vm.pos_profile.posa_enable_restaurant_mode) {
+						try {
+							await vm.fetch_available_tables();
+						} catch (error) {
+							console.error("Failed to refresh available tables:", error);
+						}
+					}
+
 					// Handle KOT printing if data is available
 					if (kotData && autoKot) {
 						// Auto-print KOT
