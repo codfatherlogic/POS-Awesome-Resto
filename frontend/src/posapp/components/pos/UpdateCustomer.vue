@@ -250,7 +250,7 @@ export default {
 		gender: "",
 		loyalty_points: null,
 		loyalty_program: null,
-		hideNonEssential: false,
+		hideNonEssential: true, // Default to hiding non-essential fields
 		countries: [
 			"Afghanistan",
 			"Australia",
@@ -655,6 +655,10 @@ export default {
 			const saved = localStorage.getItem("posawesome_hide_non_essential_fields");
 			if (saved !== null) {
 				this.hideNonEssential = JSON.parse(saved);
+			} else {
+				// First time use - set default to true and save it
+				this.hideNonEssential = true;
+				localStorage.setItem("posawesome_hide_non_essential_fields", JSON.stringify(true));
 			}
 		}
 		this.eventBus.on("open_update_customer", (data) => {
