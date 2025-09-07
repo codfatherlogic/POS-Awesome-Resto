@@ -18,7 +18,23 @@
 					<v-container fluid class="pa-4">
 						<!-- Filters Row -->
 						<v-row class="mb-4">
-							<v-col cols="12" md="3">
+							<v-col cols="12" md="2">
+								<v-select
+									color="primary"
+									:label="frappe._('Counter')"
+									:bg-color="isDarkTheme ? '#1E1E1E' : 'white'"
+									hide-details
+									v-model="filter_pos_profile"
+									:items="pos_profile_options"
+									item-title="display_name"
+									item-value="name"
+									density="compact"
+									clearable
+									class="mx-2"
+									@update:model-value="filter_orders"
+								></v-select>
+							</v-col>
+							<v-col cols="12" md="2">
 								<v-select
 									color="primary"
 									:label="frappe._('Order Type')"
@@ -32,7 +48,7 @@
 									@update:model-value="filter_orders"
 								></v-select>
 							</v-col>
-							<v-col cols="12" md="3">
+							<v-col cols="12" md="2">
 								<v-select
 									color="primary"
 									:label="frappe._('Status')"
@@ -73,7 +89,7 @@
 									@input="filter_orders"
 								></v-text-field>
 							</v-col>
-							<v-col cols="12" md="2">
+							<v-col cols="12" md="1">
 								<v-btn
 									variant="text"
 									color="primary"
@@ -493,10 +509,12 @@ export default {
 		converting: false,
 		multiSelectMode: false,
 		expanded: [], // Track expanded rows
+		filter_pos_profile: null, // Default POS profile filter (will be set to current pos_profile)
 		filter_order_type: null,
 		filter_status: "Draft", // Default to Draft status
 		filter_date: null,
 		search_text: "",
+		pos_profiles_data: [], // Store all available POS profiles
 			headers: [
 				{
 					title: __("Order"),
@@ -566,8 +584,41 @@ export default {
 		isDarkTheme() {
 			return this.$theme?.current === "dark";
 		},
+		
+		pos_profile_options() {
+			// Create display options for Counter dropdown (no company name)
+			return this.pos_profiles_data.map(profile => ({
+				name: profile.name,
+				display_name: profile.name
+			}));
+		},
+		
+		order_type_options() {
+			// Return unique order types from the orders data
+			const orderTypes = new Set();
+			this.orders_data.forEach(order => {
+				if (order.restaurant_order_type) {
+					orderTypes.add(order.restaurant_order_type);
+				}
+			});
+			return Array.from(orderTypes);
+		},
+		
+		status_options() {
+			return [
+				{ title: "Draft", value: "Draft" },
+				{ title: "Submitted", value: "Submitted" },
+				{ title: "Billed", value: "Billed" },
+				{ title: "Cancelled", value: "Cancelled" }
+			];
+		},
 	},
 	watch: {
+		filter_pos_profile() {
+			if (this.ordersDialog) {
+				this.fetch_orders();
+			}
+		},
 		filter_status() {
 			if (this.ordersDialog) {
 				this.fetch_orders();
@@ -584,11 +635,19 @@ export default {
 			this.ordersDialog = true;
 			this.clearSelected();
 			
+			// Set default POS profile filter to current pos_profile if not set
+			if (!this.filter_pos_profile && this.pos_profile?.name) {
+				this.filter_pos_profile = this.pos_profile.name;
+			}
+			
 			// Set today's date as default if not already set
 			if (!this.filter_date) {
 				const today = new Date();
 				this.filter_date = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 			}
+			
+			// Fetch POS profiles for the dropdown
+			await this.fetch_pos_profiles();
 			
 			await this.fetch_orders();
 		},
@@ -602,6 +661,21 @@ export default {
 			this.selected = [];
 		},
 
+		async fetch_pos_profiles() {
+			try {
+				const r = await frappe.call({
+					method: "posawesome.posawesome.api.restaurant_orders.get_pos_profiles",
+				});
+				
+				if (r.message) {
+					this.pos_profiles_data = r.message;
+				}
+			} catch (error) {
+				console.error("Failed to fetch POS profiles:", error);
+				this.pos_profiles_data = [];
+			}
+		},
+
 		async fetch_orders() {
 			this.loading = true;
 			try {
@@ -609,6 +683,7 @@ export default {
 					pos_opening_shift: this.pos_opening_shift?.name || null,
 					status: this.filter_status || null,
 					date_filter: this.filter_date || null,
+					pos_profile_name: this.filter_pos_profile || null,
 				});
 				
 				const r = await frappe.call({
@@ -617,6 +692,7 @@ export default {
 						pos_opening_shift: this.pos_opening_shift?.name || null,
 						status: this.filter_status || null,
 						date_filter: this.filter_date || null,
+						pos_profile_name: this.filter_pos_profile || null,
 					},
 				});
 				
@@ -687,6 +763,14 @@ export default {
 
 		filter_orders() {
 			let filtered = [...this.orders_data];
+			
+			// Filter by POS Profile (Counter)
+			if (this.filter_pos_profile) {
+				// TODO: Add pos_profile field to Sales Order for proper filtering
+				// For now, show all orders regardless of counter selection
+				// This provides the UI infrastructure for future POS profile filtering
+				console.log(`Counter filter selected: ${this.filter_pos_profile} (showing all orders until pos_profile field is added to Sales Order)`);
+			}
 			
 			// Filter by order type
 			if (this.filter_order_type) {

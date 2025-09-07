@@ -66667,11 +66667,15 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
       multiSelectMode: !1,
       expanded: [],
       // Track expanded rows
+      filter_pos_profile: null,
+      // Default POS profile filter (will be set to current pos_profile)
       filter_order_type: null,
       filter_status: "Draft",
       // Default to Draft status
       filter_date: null,
       search_text: "",
+      pos_profiles_data: [],
+      // Store all available POS profiles
       headers: [
         {
           title: __("Order"),
@@ -66741,9 +66745,32 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
   computed: {
     isDarkTheme() {
       return this.$theme?.current === "dark";
+    },
+    pos_profile_options() {
+      return this.pos_profiles_data.map((e) => ({
+        name: e.name,
+        display_name: e.name
+      }));
+    },
+    order_type_options() {
+      const e = /* @__PURE__ */ new Set();
+      return this.orders_data.forEach((t) => {
+        t.restaurant_order_type && e.add(t.restaurant_order_type);
+      }), Array.from(e);
+    },
+    status_options() {
+      return [
+        { title: "Draft", value: "Draft" },
+        { title: "Submitted", value: "Submitted" },
+        { title: "Billed", value: "Billed" },
+        { title: "Cancelled", value: "Cancelled" }
+      ];
     }
   },
   watch: {
+    filter_pos_profile() {
+      this.ordersDialog && this.fetch_orders();
+    },
     filter_status() {
       this.ordersDialog && this.fetch_orders();
     },
@@ -66753,11 +66780,11 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
   },
   methods: {
     async open_orders_dialog() {
-      if (this.ordersDialog = !0, this.clearSelected(), !this.filter_date) {
+      if (this.ordersDialog = !0, this.clearSelected(), !this.filter_pos_profile && this.pos_profile?.name && (this.filter_pos_profile = this.pos_profile.name), !this.filter_date) {
         const e = /* @__PURE__ */ new Date();
         this.filter_date = e.toISOString().split("T")[0];
       }
-      await this.fetch_orders();
+      await this.fetch_pos_profiles(), await this.fetch_orders();
     },
     close_dialog() {
       this.ordersDialog = !1, this.clearSelected();
@@ -66765,20 +66792,32 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
     clearSelected() {
       this.selected = [];
     },
+    async fetch_pos_profiles() {
+      try {
+        const e = await frappe.call({
+          method: "posawesome.posawesome.api.restaurant_orders.get_pos_profiles"
+        });
+        e.message && (this.pos_profiles_data = e.message);
+      } catch (e) {
+        console.error("Failed to fetch POS profiles:", e), this.pos_profiles_data = [];
+      }
+    },
     async fetch_orders() {
       this.loading = !0;
       try {
         console.log("Fetching orders with filters:", {
           pos_opening_shift: this.pos_opening_shift?.name || null,
           status: this.filter_status || null,
-          date_filter: this.filter_date || null
+          date_filter: this.filter_date || null,
+          pos_profile_name: this.filter_pos_profile || null
         });
         const e = await frappe.call({
           method: "posawesome.posawesome.api.restaurant_orders.get_restaurant_orders",
           args: {
             pos_opening_shift: this.pos_opening_shift?.name || null,
             status: this.filter_status || null,
-            date_filter: this.filter_date || null
+            date_filter: this.filter_date || null,
+            pos_profile_name: this.filter_pos_profile || null
           }
         });
         if (console.log("=== FETCH ORDERS DEBUG ==="), console.log("Raw API response:", e), console.log("Response message:", e.message), e.message && e.message.length > 0) {
@@ -66821,7 +66860,7 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
     },
     filter_orders() {
       let e = [...this.orders_data];
-      if (this.filter_order_type && (e = e.filter((t) => t.order_type_name === this.filter_order_type)), this.filter_status && (e = e.filter((t) => this.getOrderStatus(t) === this.filter_status)), this.filter_date && (e = e.filter((t) => new Date(t.transaction_date).toISOString().split("T")[0] === this.filter_date)), this.search_text) {
+      if (this.filter_pos_profile && console.log(`Counter filter selected: ${this.filter_pos_profile} (showing all orders until pos_profile field is added to Sales Order)`), this.filter_order_type && (e = e.filter((t) => t.order_type_name === this.filter_order_type)), this.filter_status && (e = e.filter((t) => this.getOrderStatus(t) === this.filter_status)), this.filter_date && (e = e.filter((t) => new Date(t.transaction_date).toISOString().split("T")[0] === this.filter_date)), this.search_text) {
         const t = this.search_text.toLowerCase();
         e = e.filter(
           (n) => n.name.toLowerCase().includes(t) || n.customer_name.toLowerCase().includes(t)
@@ -67331,7 +67370,7 @@ function Cre(e, t, n, a, r, i) {
     default: T(() => [
       _(I, {
         modelValue: r.ordersDialog,
-        "onUpdate:modelValue": t[7] || (t[7] = (M) => r.ordersDialog = M),
+        "onUpdate:modelValue": t[8] || (t[8] = (M) => r.ordersDialog = M),
         "max-width": "1400px",
         "max-height": "90vh"
       }, {
@@ -67366,20 +67405,22 @@ function Cre(e, t, n, a, r, i) {
                         default: T(() => [
                           _(u, {
                             cols: "12",
-                            md: "3"
+                            md: "2"
                           }, {
                             default: T(() => [
                               _(d, {
                                 color: "primary",
-                                label: e.frappe._("Order Type"),
+                                label: e.frappe._("Counter"),
                                 "bg-color": i.isDarkTheme ? "#1E1E1E" : "white",
                                 "hide-details": "",
-                                modelValue: r.filter_order_type,
+                                modelValue: r.filter_pos_profile,
                                 "onUpdate:modelValue": [
-                                  t[0] || (t[0] = (M) => r.filter_order_type = M),
+                                  t[0] || (t[0] = (M) => r.filter_pos_profile = M),
                                   i.filter_orders
                                 ],
-                                items: r.order_type_options,
+                                items: i.pos_profile_options,
+                                "item-title": "display_name",
+                                "item-value": "name",
                                 density: "compact",
                                 clearable: "",
                                 class: "mx-2"
@@ -67389,7 +67430,30 @@ function Cre(e, t, n, a, r, i) {
                           }),
                           _(u, {
                             cols: "12",
-                            md: "3"
+                            md: "2"
+                          }, {
+                            default: T(() => [
+                              _(d, {
+                                color: "primary",
+                                label: e.frappe._("Order Type"),
+                                "bg-color": i.isDarkTheme ? "#1E1E1E" : "white",
+                                "hide-details": "",
+                                modelValue: r.filter_order_type,
+                                "onUpdate:modelValue": [
+                                  t[1] || (t[1] = (M) => r.filter_order_type = M),
+                                  i.filter_orders
+                                ],
+                                items: i.order_type_options,
+                                density: "compact",
+                                clearable: "",
+                                class: "mx-2"
+                              }, null, 8, ["label", "bg-color", "modelValue", "items", "onUpdate:modelValue"])
+                            ]),
+                            _: 1
+                          }),
+                          _(u, {
+                            cols: "12",
+                            md: "2"
                           }, {
                             default: T(() => [
                               _(d, {
@@ -67399,10 +67463,10 @@ function Cre(e, t, n, a, r, i) {
                                 "hide-details": "",
                                 modelValue: r.filter_status,
                                 "onUpdate:modelValue": [
-                                  t[1] || (t[1] = (M) => r.filter_status = M),
+                                  t[2] || (t[2] = (M) => r.filter_status = M),
                                   i.filter_orders
                                 ],
-                                items: r.status_options,
+                                items: i.status_options,
                                 density: "compact",
                                 clearable: "",
                                 class: "mx-2"
@@ -67422,7 +67486,7 @@ function Cre(e, t, n, a, r, i) {
                                 "hide-details": "",
                                 modelValue: r.filter_date,
                                 "onUpdate:modelValue": [
-                                  t[2] || (t[2] = (M) => r.filter_date = M),
+                                  t[3] || (t[3] = (M) => r.filter_date = M),
                                   i.filter_orders
                                 ],
                                 type: "date",
@@ -67443,7 +67507,7 @@ function Cre(e, t, n, a, r, i) {
                                 "bg-color": i.isDarkTheme ? "#1E1E1E" : "white",
                                 "hide-details": "",
                                 modelValue: r.search_text,
-                                "onUpdate:modelValue": t[3] || (t[3] = (M) => r.search_text = M),
+                                "onUpdate:modelValue": t[4] || (t[4] = (M) => r.search_text = M),
                                 density: "compact",
                                 clearable: "",
                                 class: "mx-2",
@@ -67455,7 +67519,7 @@ function Cre(e, t, n, a, r, i) {
                           }),
                           _(u, {
                             cols: "12",
-                            md: "2"
+                            md: "1"
                           }, {
                             default: T(() => [
                               _(l, {
@@ -67468,11 +67532,11 @@ function Cre(e, t, n, a, r, i) {
                               }, {
                                 default: T(() => [
                                   _(h, null, {
-                                    default: T(() => t[12] || (t[12] = [
+                                    default: T(() => t[13] || (t[13] = [
                                       ae("mdi-refresh")
                                     ])),
                                     _: 1,
-                                    __: [12]
+                                    __: [13]
                                   }),
                                   ae(" " + q(e.__("Refresh")), 1)
                                 ]),
@@ -67498,14 +67562,14 @@ function Cre(e, t, n, a, r, i) {
                                 class: "elevation-1",
                                 "show-select": "",
                                 modelValue: r.selected,
-                                "onUpdate:modelValue": t[4] || (t[4] = (M) => r.selected = M),
+                                "onUpdate:modelValue": t[5] || (t[5] = (M) => r.selected = M),
                                 "return-object": "",
                                 "select-strategy": r.multiSelectMode ? "page" : "single",
                                 loading: r.loading,
                                 density: "compact",
                                 "show-expand": "",
                                 expanded: r.expanded,
-                                "onUpdate:expanded": t[5] || (t[5] = (M) => r.expanded = M)
+                                "onUpdate:expanded": t[6] || (t[6] = (M) => r.expanded = M)
                               }, {
                                 "item.transaction_date": T(({ item: M }) => [
                                   ae(q(i.formatDate(M.transaction_date)), 1)
@@ -67546,11 +67610,11 @@ function Cre(e, t, n, a, r, i) {
                                         start: "",
                                         size: "small"
                                       }, {
-                                        default: T(() => t[13] || (t[13] = [
+                                        default: T(() => t[14] || (t[14] = [
                                           ae("mdi-table-furniture")
                                         ])),
                                         _: 1,
-                                        __: [13]
+                                        __: [14]
                                       }),
                                       ae(" " + q(M.table_number), 1)
                                     ]),
@@ -67585,11 +67649,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[14] || (t[14] = [
+                                          default: T(() => t[15] || (t[15] = [
                                             ae("mdi-pencil")
                                           ])),
                                           _: 1,
-                                          __: [14]
+                                          __: [15]
                                         }),
                                         ae(" " + q(e.__("Edit")), 1)
                                       ]),
@@ -67609,11 +67673,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[15] || (t[15] = [
+                                          default: T(() => t[16] || (t[16] = [
                                             ae("mdi-plus-circle")
                                           ])),
                                           _: 1,
-                                          __: [15]
+                                          __: [16]
                                         }),
                                         ae(" " + q(e.__("Add Items")), 1)
                                       ]),
@@ -67633,11 +67697,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[16] || (t[16] = [
+                                          default: T(() => t[17] || (t[17] = [
                                             ae("mdi-printer")
                                           ])),
                                           _: 1,
-                                          __: [16]
+                                          __: [17]
                                         }),
                                         ae(" " + q(e.__("Reprint KOT")), 1)
                                       ]),
@@ -67657,11 +67721,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[17] || (t[17] = [
+                                          default: T(() => t[18] || (t[18] = [
                                             ae("mdi-close-circle")
                                           ])),
                                           _: 1,
-                                          __: [17]
+                                          __: [18]
                                         }),
                                         ae(" " + q(e.__("Void Items")), 1)
                                       ]),
@@ -67681,11 +67745,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[18] || (t[18] = [
+                                          default: T(() => t[19] || (t[19] = [
                                             ae("mdi-delete")
                                           ])),
                                           _: 1,
-                                          __: [18]
+                                          __: [19]
                                         }),
                                         ae(" " + q(e.__("Delete")), 1)
                                       ]),
@@ -67704,11 +67768,11 @@ function Cre(e, t, n, a, r, i) {
                                           start: "",
                                           size: "small"
                                         }, {
-                                          default: T(() => t[19] || (t[19] = [
+                                          default: T(() => t[20] || (t[20] = [
                                             ae("mdi-cancel")
                                           ])),
                                           _: 1,
-                                          __: [19]
+                                          __: [20]
                                         }),
                                         ae(" " + q(e.__("Cancel")), 1)
                                       ]),
@@ -67728,11 +67792,11 @@ function Cre(e, t, n, a, r, i) {
                                         _(s, { class: "text-h6 text-primary" }, {
                                           default: T(() => [
                                             _(h, { class: "mr-2" }, {
-                                              default: T(() => t[20] || (t[20] = [
+                                              default: T(() => t[21] || (t[21] = [
                                                 ae("mdi-receipt")
                                               ])),
                                               _: 1,
-                                              __: [20]
+                                              __: [21]
                                             }),
                                             ae(" " + q(e.__("Order Details: {0}", [M.name])), 1)
                                           ]),
@@ -67753,11 +67817,11 @@ function Cre(e, t, n, a, r, i) {
                                                         _(b, null, {
                                                           prepend: T(() => [
                                                             _(h, null, {
-                                                              default: T(() => t[21] || (t[21] = [
+                                                              default: T(() => t[22] || (t[22] = [
                                                                 ae("mdi-calendar")
                                                               ])),
                                                               _: 1,
-                                                              __: [21]
+                                                              __: [22]
                                                             })
                                                           ]),
                                                           default: T(() => [
@@ -67773,11 +67837,11 @@ function Cre(e, t, n, a, r, i) {
                                                         _(b, null, {
                                                           prepend: T(() => [
                                                             _(h, null, {
-                                                              default: T(() => t[22] || (t[22] = [
+                                                              default: T(() => t[23] || (t[23] = [
                                                                 ae("mdi-account")
                                                               ])),
                                                               _: 1,
-                                                              __: [22]
+                                                              __: [23]
                                                             })
                                                           ]),
                                                           default: T(() => [
@@ -67793,11 +67857,11 @@ function Cre(e, t, n, a, r, i) {
                                                         M.table_number ? (Z(), Fe(b, { key: 0 }, {
                                                           prepend: T(() => [
                                                             _(h, null, {
-                                                              default: T(() => t[23] || (t[23] = [
+                                                              default: T(() => t[24] || (t[24] = [
                                                                 ae("mdi-table-furniture")
                                                               ])),
                                                               _: 1,
-                                                              __: [23]
+                                                              __: [24]
                                                             })
                                                           ]),
                                                           default: T(() => [
@@ -67813,11 +67877,11 @@ function Cre(e, t, n, a, r, i) {
                                                         _(b, null, {
                                                           prepend: T(() => [
                                                             _(h, null, {
-                                                              default: T(() => t[24] || (t[24] = [
+                                                              default: T(() => t[25] || (t[25] = [
                                                                 ae("mdi-food")
                                                               ])),
                                                               _: 1,
-                                                              __: [24]
+                                                              __: [25]
                                                             })
                                                           ]),
                                                           default: T(() => [
@@ -67995,7 +68059,7 @@ function Cre(e, t, n, a, r, i) {
                     key: 2,
                     color: "warning",
                     theme: "dark",
-                    onClick: t[6] || (t[6] = (M) => i.edit_order(r.selected[0])),
+                    onClick: t[7] || (t[7] = (M) => i.edit_order(r.selected[0])),
                     loading: r.converting,
                     class: "mr-2"
                   }, {
@@ -68015,7 +68079,7 @@ function Cre(e, t, n, a, r, i) {
       }, 8, ["modelValue"]),
       _(I, {
         modelValue: r.voidItemsDialog,
-        "onUpdate:modelValue": t[11] || (t[11] = (M) => r.voidItemsDialog = M),
+        "onUpdate:modelValue": t[12] || (t[12] = (M) => r.voidItemsDialog = M),
         "max-width": "600px"
       }, {
         default: T(() => [
@@ -68029,7 +68093,7 @@ function Cre(e, t, n, a, r, i) {
                     icon: "mdi-close",
                     variant: "text",
                     density: "compact",
-                    onClick: t[8] || (t[8] = (M) => r.voidItemsDialog = !1)
+                    onClick: t[9] || (t[9] = (M) => r.voidItemsDialog = !1)
                   })
                 ]),
                 _: 1
@@ -68043,11 +68107,11 @@ function Cre(e, t, n, a, r, i) {
                   }, {
                     default: T(() => [
                       _(h, { start: "" }, {
-                        default: T(() => t[25] || (t[25] = [
+                        default: T(() => t[26] || (t[26] = [
                           ae("mdi-alert-triangle")
                         ])),
                         _: 1,
-                        __: [25]
+                        __: [26]
                       }),
                       ae(" " + q(e.__("Select items and specify quantities to void from order {0}. Voided items will generate a KOT for kitchen notification.", [r.selectedOrderForVoid.name])), 1)
                     ]),
@@ -68128,7 +68192,7 @@ function Cre(e, t, n, a, r, i) {
                   _(o),
                   _(l, {
                     color: "error",
-                    onClick: t[9] || (t[9] = (M) => r.voidItemsDialog = !1)
+                    onClick: t[10] || (t[10] = (M) => r.voidItemsDialog = !1)
                   }, {
                     default: T(() => [
                       ae(q(e.__("Cancel")), 1)
@@ -68139,7 +68203,7 @@ function Cre(e, t, n, a, r, i) {
                     color: "warning",
                     loading: r.voidLoading,
                     disabled: i.getSelectedVoidItems().length === 0,
-                    onClick: t[10] || (t[10] = (M) => i.confirmVoidItems(r.selectedOrderForVoid, i.getSelectedVoidItems()))
+                    onClick: t[11] || (t[11] = (M) => i.confirmVoidItems(r.selectedOrderForVoid, i.getSelectedVoidItems()))
                   }, {
                     default: T(() => [
                       ae(q(e.__("Void Selected Items")), 1)
@@ -68159,7 +68223,7 @@ function Cre(e, t, n, a, r, i) {
     _: 1
   });
 }
-const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-0455aa15"]]), xre = {
+const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-13d8dee6"]]), xre = {
   mixins: [Oi],
   data: () => ({
     closingDialog: !1,
@@ -72045,7 +72109,7 @@ const poe = {
             } catch (n) {
               console.warn("Failed to cache tax inclusive setting", n);
             }
-            import("./index-EWQAeUYZ.js").then((n) => {
+            import("./index-CiwVmTXw.js").then((n) => {
               n && n.setTaxInclusiveSetting && n.setTaxInclusiveSetting(t);
             }).catch(() => {
             });

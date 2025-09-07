@@ -29,6 +29,16 @@ def get_available_tables():
 	)
 
 @frappe.whitelist()
+def get_pos_profiles():
+	"""Get all enabled POS profiles for counter filtering"""
+	return frappe.get_all(
+		"POS Profile",
+		filters={"disabled": 0},
+		fields=["name"],
+		order_by="name"
+	)
+
+@frappe.whitelist()
 def create_restaurant_order(order_data):
 	"""Create a restaurant order (Sales Order) with order type and table info"""
 	if isinstance(order_data, str):
@@ -463,14 +473,14 @@ def convert_order_to_invoice(sales_order_name, pos_profile_name=None):
 
 
 @frappe.whitelist()
-def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, date_filter=None):
+def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, date_filter=None, pos_profile_name=None):
 	"""Get restaurant orders with filtering options"""
 	filters = {
 		"restaurant_order_type": ["is", "set"]  # Only get orders that have restaurant_order_type
 	}
 	
 	# Debug logging (shortened to avoid length issues)
-	frappe.log_error(f"Restaurant Orders API called with status={status}, date={date_filter}", "Restaurant Orders API")
+	frappe.log_error(f"Restaurant Orders API called with status={status}, date={date_filter}, pos_profile={pos_profile_name}", "Restaurant Orders API")
 	
 	# Only filter by pos_opening_shift if the field exists in Sales Order
 	if pos_opening_shift:
@@ -481,6 +491,14 @@ def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, 
 		except:
 			pass  # Field doesn't exist, skip this filter
 	
+	# Filter by POS Profile (Counter) - Now that pos_profile field exists in Sales Order
+	if pos_profile_name:
+		# Use explicit filtering to handle NULL values correctly
+		# This ensures only orders with the exact pos_profile value are returned
+		filters["pos_profile"] = ["=", pos_profile_name]
+		# Debug: Log the filters being applied
+		frappe.log_error(f"Applying pos_profile filter: {filters}", "POS Profile Filter Debug")
+
 	if order_type:
 		filters["restaurant_order_type"] = order_type
 	
