@@ -14,7 +14,8 @@ def get_active_pos_profile(user=None):
 	user = user or frappe.session.user
 	profile = frappe.db.get_value("POS Profile User", {"user": user}, "parent")
 	if not profile:
-		profile = frappe.db.get_single_value("POS Settings", "pos_profile")
+		# Get the first available POS Profile if no user-specific profile is found
+		profile = frappe.db.get_value("POS Profile", {"disabled": 0}, "name")
 	if not profile:
 		return None
 	return frappe.get_doc("POS Profile", profile).as_dict()

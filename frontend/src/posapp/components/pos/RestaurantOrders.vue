@@ -634,10 +634,10 @@ export default {
 						});
 					});
 					
-					// Check if any orders have invalid names
-					const invalidOrders = r.message.filter(o => !o.name || !o.name.startsWith('SAL-ORD-'));
+					// Check if any orders have invalid names (empty or undefined)
+					const invalidOrders = r.message.filter(o => !o.name || o.name.trim() === '');
 					if (invalidOrders.length > 0) {
-						console.error("CRITICAL: API returned orders with invalid names:");
+						console.error("CRITICAL: API returned orders with empty names:");
 						invalidOrders.forEach(order => {
 							console.error("  INVALID ORDER:", order);
 						});
@@ -648,10 +648,10 @@ export default {
 				console.log("API response:", r);
 				
 				if (r.message) {
-					// Filter out any entries that don't have proper Sales Order names
-					// This prevents corrupted data from showing in the list
+					// Accept all restaurant orders regardless of naming series
+					// No need to filter by naming convention
 					const validOrders = r.message.filter(order => {
-						const isValid = order.name && order.name.startsWith('SAL-ORD-');
+						const isValid = order.name && order.name.trim() !== '';
 						if (!isValid) {
 							console.warn("Filtering out invalid order entry:", order.name);
 						}
@@ -659,7 +659,7 @@ export default {
 					});
 					
 					this.orders_data = validOrders;
-					console.log("Orders data (filtered):", this.orders_data);
+					console.log("Orders data (all naming series accepted):", this.orders_data);
 					this.filter_orders();
 					
 					// Extract unique order types for filter
@@ -862,16 +862,21 @@ export default {
 			console.log("All orders data:", JSON.stringify(this.orders_data.map(o => ({name: o.name, docstatus: o.docstatus})), null, 2));
 			console.log("=== END DEBUG ===");
 			
-			// CRITICAL FIX: If the selected order has an invalid name but we can find the correct order in orders_data, use that
+			// FIXED: Accept all valid order names, not just SAL-ORD- prefix
+			// Valid restaurant order should have a name and be in our orders_data
 			let validOrderName = order.name;
-			if (!order.name || !order.name.startsWith('SAL-ORD-')) {
-				console.error("CRITICAL: Selected order has invalid name, attempting to find correct order...");
+			const isValidOrder = order.name && 
+				this.orders_data.some(o => o.name === order.name) && 
+				order.restaurant_order_type; // Must be a restaurant order
+			
+			if (!isValidOrder) {
+				console.error("CRITICAL: Selected order is invalid, attempting to find correct order...");
 				
 				// Try to find the order in orders_data by matching other properties
 				const correctOrder = this.orders_data.find(o => 
 					o.customer === order.customer && 
 					Math.abs(o.grand_total - order.grand_total) < 0.01 &&
-					o.name && o.name.startsWith('SAL-ORD-')
+					o.restaurant_order_type // Must be a restaurant order
 				);
 				
 				if (correctOrder) {
@@ -974,10 +979,10 @@ export default {
 			try {
 				console.log("Loading order for editing:", order.name);
 				
-				// Validate that this is actually a Sales Order
-				if (!order.name.startsWith('SAL-ORD-')) {
+				// Validate that this is actually a restaurant order with a valid name
+				if (!order.name || !order.restaurant_order_type) {
 					this.eventBus.emit("show_message", {
-						title: __("Invalid order format. Expected Sales Order name."),
+						title: __("Invalid order format. Expected valid restaurant order."),
 						color: "error",
 					});
 					return;

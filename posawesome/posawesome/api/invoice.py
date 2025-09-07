@@ -61,6 +61,14 @@ def add_loyalty_point(invoice_doc):
 
 
 def create_sales_order(doc):
+    # CRITICAL FIX: Prevent automatic Sales Order creation for consolidated multi-order invoices
+    # These invoices are already created from draft Sales Orders and should not generate new ones
+    if hasattr(doc, '_is_consolidated_invoice') or (
+        doc.remarks and 'Consolidated from draft order' in doc.remarks
+    ):
+        frappe.log_error(f"⏭️ Skipping automatic Sales Order creation for consolidated invoice: {doc.name}", "Consolidated Invoice Skip")
+        return
+    
     if (
         doc.posa_pos_opening_shift
         and doc.pos_profile

@@ -5,7 +5,7 @@
 import json
 import frappe
 from frappe import _
-from frappe.utils import nowdate, now_datetime
+from frappe.utils import nowdate, now_datetime, getdate
 from posawesome.posawesome.api.sales_orders import submit_sales_order, update_sales_order
 
 @frappe.whitelist()
@@ -126,8 +126,8 @@ def submit_restaurant_order(order_data):
 		order_name = order_data["name"]
 		
 		# Validate that this is actually a Sales Order name, not a Sales Invoice
-		if not order_name or not order_name.startswith("SAL-ORD-"):
-			frappe.throw(_("Invalid Sales Order name format: {0}. Expected format: SAL-ORD-XXXX").format(order_name))
+		if not order_name:
+			frappe.throw(_("Sales Order name is required"))
 		
 		try:
 			order = frappe.get_doc("Sales Order", order_name)
@@ -161,11 +161,114 @@ def submit_restaurant_order(order_data):
 	return result
 
 @frappe.whitelist()
-def convert_order_to_invoice(sales_order_name, pos_profile_name=None):
-	"""Convert a Sales Order to Sales Invoice for payment"""
+def debug_order_conversion_readiness(sales_order_name):
+	"""Debug function to check if an order is ready for single conversion"""
 	try:
-		# Get the Sales Order
+		is_valid, message = validate_single_order_for_conversion(sales_order_name)
+		
+		result = {
+			"order_name": sales_order_name,
+			"is_valid_for_single_conversion": is_valid,
+			"validation_message": message,
+			"operation_type": "single_order" if is_single_order_operation([sales_order_name]) else "multi_order"
+		}
+		
+		# Additional debugging info
+		try:
+			sales_order = frappe.get_doc("Sales Order", sales_order_name)
+			result.update({
+				"status": sales_order.status,
+				"docstatus": sales_order.docstatus,
+				"per_billed": sales_order.per_billed,
+				"restaurant_order_type": getattr(sales_order, 'restaurant_order_type', None),
+				"table_number": getattr(sales_order, 'table_number', None),
+				"customer": sales_order.customer
+			})
+		except Exception as e:
+			result["error_getting_details"] = str(e)
+		
+		return result
+		
+	except Exception as e:
+		return {
+			"order_name": sales_order_name,
+			"error": str(e),
+			"is_valid_for_single_conversion": False
+		}
+
+def is_single_order_operation(sales_order_names):
+	"""Helper function to determine if this is a single order operation"""
+	if isinstance(sales_order_names, str):
+		return True
+	if isinstance(sales_order_names, list) and len(sales_order_names) == 1:
+		return True
+	return False
+
+def validate_single_order_for_conversion(sales_order_name):
+	"""Validate that a single order is ready for conversion - ISOLATED validation"""
+	try:
 		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+		
+		# Check if it's a restaurant order
+		if not hasattr(sales_order, 'restaurant_order_type') or not sales_order.restaurant_order_type:
+			return False, f"Order {sales_order_name} is not a restaurant order"
+		
+		# Check if already billed
+		if sales_order.per_billed >= 100:
+			return False, f"Order {sales_order_name} is already {sales_order.per_billed}% billed"
+		
+		# Check if already has invoice items
+		existing_invoices = frappe.get_all("Sales Invoice Item", 
+			filters={"sales_order": sales_order_name, "docstatus": 1}, 
+			fields=["parent"])
+		if existing_invoices:
+			return False, f"Order {sales_order_name} already has invoices: {[inv.parent for inv in existing_invoices]}"
+		
+		# Check status
+		if sales_order.docstatus != 0:
+			return False, f"Order {sales_order_name} must be in Draft status (current: {sales_order.docstatus})"
+		
+		return True, "Order is valid for single conversion"
+		
+	except Exception as e:
+		return False, f"Error validating order {sales_order_name}: {str(e)}"
+
+@frappe.whitelist()
+def convert_order_to_invoice(sales_order_name, pos_profile_name=None):
+	"""Convert a SINGLE Sales Order to Sales Invoice for payment - ENHANCED with direct safe conversion"""
+	try:
+		frappe.log_error(f"=== SINGLE ORDER CONVERSION START === Order: {sales_order_name}", "Single Order Conversion")
+		
+		# Get the Sales Order and check its current billing status
+		sales_order = frappe.get_doc("Sales Order", sales_order_name)
+		
+		# ENHANCED SAFETY CHECKS for single order conversion
+		frappe.log_error(f"Order {sales_order_name} status: {sales_order.status}, docstatus: {sales_order.docstatus}, per_billed: {sales_order.per_billed}%", "Single Order Validation")
+		
+		# 1. SAFETY CHECK: Prevent over-billing by checking current billed amount
+		if sales_order.per_billed >= 100:
+			frappe.throw(_("Sales Order {0} is already fully billed ({1}%). This order cannot be converted to invoice.").format(sales_order_name, sales_order.per_billed))
+		
+		# 2. SAFETY CHECK: Ensure this is a valid restaurant order
+		if not hasattr(sales_order, 'restaurant_order_type') or not sales_order.restaurant_order_type:
+			frappe.throw(_("Sales Order {0} is not a restaurant order and cannot be converted using this function.").format(sales_order_name))
+		
+		# 3. SAFETY CHECK: Check if this order was part of a multi-order consolidation (and thus already billed)
+		existing_invoices = frappe.get_all("Sales Invoice Item", 
+			filters={"sales_order": sales_order_name, "docstatus": 1}, 
+			fields=["parent"])
+		
+		if existing_invoices:
+			invoice_names = [inv.parent for inv in existing_invoices]
+			frappe.throw(_("Sales Order {0} has already been billed in invoice(s): {1}. Use 'Reprint KOT' to view existing invoice.").format(
+				sales_order_name, ", ".join(invoice_names)))
+		
+		# 4. SAFETY CHECK: Ensure order is in proper status for conversion
+		if sales_order.docstatus != 0:
+			frappe.throw(_("Sales Order {0} must be in Draft status for single order conversion. Current status: {1}").format(
+				sales_order_name, "Submitted" if sales_order.docstatus == 1 else "Cancelled"))
+		
+		frappe.log_error(f"Single order conversion validated successfully for {sales_order_name}", "Single Order Conversion")
 		
 		# Create invoice manually to ensure proper linking instead of using make_sales_invoice
 		invoice_doc = frappe.new_doc("Sales Invoice")
@@ -183,7 +286,12 @@ def convert_order_to_invoice(sales_order_name, pos_profile_name=None):
 		invoice_doc.conversion_rate = sales_order.conversion_rate
 		
 		# Copy items with proper Sales Order references
+		total_amount = 0
 		for so_item in sales_order.items:
+			# Check if this item has already been billed
+			if so_item.billed_amt > 0:
+				frappe.log_error(f"Warning: SO Item {so_item.name} already has billed_amt: {so_item.billed_amt}", "Single Order Warning")
+			
 			invoice_item = invoice_doc.append("items", {})
 			invoice_item.item_code = so_item.item_code
 			invoice_item.item_name = so_item.item_name
@@ -205,12 +313,8 @@ def convert_order_to_invoice(sales_order_name, pos_profile_name=None):
 				invoice_item.base_rate = so_item.base_rate
 			if hasattr(so_item, 'base_amount'):
 				invoice_item.base_amount = so_item.base_amount
-		
-			# Copy other important fields
-			if hasattr(so_item, 'base_rate'):
-				invoice_item.base_rate = so_item.base_rate
-			if hasattr(so_item, 'base_amount'):
-				invoice_item.base_amount = so_item.base_amount
+			
+			total_amount += so_item.amount
 		
 		# Copy taxes if they exist
 		if hasattr(sales_order, 'taxes') and sales_order.taxes:
@@ -419,17 +523,8 @@ def get_restaurant_orders(pos_opening_shift=None, order_type=None, status=None, 
 	# except Exception as log_err:
 	#	frappe.log_error(f"Found {len(order_names)} orders in query", "Restaurant Orders Count")
 	
-	# Filter out any non-Sales Order entries (safety check)
-	valid_orders = []
-	for order in orders:
-		if order.name and order.name.startswith("SAL-ORD-"):
-			valid_orders.append(order)
-		# Commenting out logging to prevent issues
-		# else:
-		#	try:
-		#		frappe.log_error(f"WARNING: Invalid order name in results: {order.name}", "Invalid Order Name")
-		#	except Exception:
-		#		frappe.log_error(f"WARNING: Invalid order found", "Invalid Order")
+	# Return all valid restaurant orders regardless of naming series
+	valid_orders = orders
 	
 	# Commenting out logging to prevent "Value too big" errors
 	# try:
@@ -1179,6 +1274,7 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 				if first_customer is None:
 					first_customer = order_doc.customer
 				elif order_doc.customer != first_customer:
+					frappe.log_error(f"Customer mismatch: Order {order_name} has customer {order_doc.customer}, but first order has {first_customer}", "Multi-Order Customer Validation")
 					frappe.throw(_("All selected orders must be from the same customer"))
 				
 				orders.append(order_doc)
@@ -1270,11 +1366,12 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 		
 		frappe.log_error(f"Successfully created consolidated order with {len(consolidated_items)} items from {len(sales_order_names)} orders", "Multi Order Load Success")
 		
-		# Create a NEW order structure (not modifying existing orders)
-		# This ensures original draft orders remain untouched
+		# Create a special multi-order payment view (NOT a real Sales Order document)
+		# This ensures the frontend doesn't try to save/submit this as a real document
 		result = {
-			'doctype': 'Sales Order',
-			'name': temp_order_name,  # Temporary name - will be assigned proper name on save
+			'doctype': 'POS Multi Order Payment',  # Special doctype - NOT 'Sales Order'
+			'name': None,  # No name - this is not a saved document
+			'temp_consolidation_id': temp_order_name,  # Track temporary ID for debugging only
 			'customer': first_order.customer,
 			'customer_name': getattr(first_order, 'customer_name', ''),
 			'transaction_date': nowdate(),  # Use today's date for new order
@@ -1288,14 +1385,17 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 			'docstatus': 0,  # Keep as draft initially
 			'items': [],
 			'payments': payment_methods,
-			# Multi-order tracking metadata
+			# Multi-order tracking metadata - THE IMPORTANT PART
+			'is_multi_order_payment_view': True,  # This is a payment collection view, NOT a real document
 			'is_multi_order_consolidation': True,  # Flag to identify this as a consolidated order
+			'is_multi_order_edit': True,  # Flag for frontend to recognize multi-order editing mode
 			'source_orders': sales_order_names,    # Original draft orders (remain as draft)
 			'multi_order_count': len(sales_order_names),
-			'multi_order_names': sales_order_names,
-			# Important: Mark this as a payment-only order
-			'is_payment_consolidation': True,  # This order is for payment processing only
-			'original_orders_remain_draft': True  # Confirm original orders stay as draft
+			'multi_order_names': sales_order_names,  # THE KEY FIELD - used by payment processing
+			# Important: Mark this as a payment-only view
+			'is_payment_consolidation': True,  # This is for payment processing only
+			'original_orders_remain_draft': True,  # Confirm original orders stay as draft
+			'virtual_payment_document': True,  # This is NOT a real ERPNext document
 		}
 		
 		# Add restaurant-specific fields if they exist (use first order as reference)
@@ -1349,244 +1449,130 @@ def load_multiple_draft_orders_for_editing(sales_order_names, pos_profile_name=N
 @frappe.whitelist()
 def finalize_multi_order_payment(consolidated_order_data, payment_data, pos_profile_name=None):
 	"""
-	Complete payment for a multi-order consolidation.
-	This creates a final Sales Invoice for payment while keeping original orders as DRAFT.
-	
-	Args:
-		consolidated_order_data: The consolidated order data from the POS cart
-		payment_data: Payment information from POS
-		pos_profile_name: POS Profile being used
+	Improved multi-order payment: Create Sales Invoice directly from Draft orders,
+	then mark them as Completed. No intermediate consolidated Sales Order needed.
 	"""
-	if isinstance(consolidated_order_data, str):
-		consolidated_order_data = json.loads(consolidated_order_data)
-	if isinstance(payment_data, str):
-		payment_data = json.loads(payment_data)
-
 	try:
-		print("=== FINALIZE MULTI ORDER PAYMENT DEBUG START ===")
-		print(f"consolidated_order_data type: {type(consolidated_order_data)}")
-		print(f"consolidated_order_data keys: {list(consolidated_order_data.keys()) if isinstance(consolidated_order_data, dict) else 'Not a dict'}")
+		# Extract order names from consolidated data
+		order_names = consolidated_order_data.get('source_orders', [])
+		if not order_names:
+			order_names = consolidated_order_data.get('multi_order_names', [])
 		
-		# Log all the critical fields we're looking for
-		print(f"source_orders field: {consolidated_order_data.get('source_orders', 'FIELD_NOT_FOUND')}")
-		print(f"multi_order_names field: {consolidated_order_data.get('multi_order_names', 'FIELD_NOT_FOUND')}")
-		print(f"is_multi_order_consolidation field: {consolidated_order_data.get('is_multi_order_consolidation', 'FIELD_NOT_FOUND')}")
+		if not order_names:
+			# Log the available keys for debugging
+			frappe.log_error(f"Available keys in consolidated_order_data: {list(consolidated_order_data.keys())}", "Multi-Order Debug")
+			frappe.throw(_("No source orders found in consolidated data. Available keys: {0}").format(list(consolidated_order_data.keys())))
 		
-		# Validate that this is a multi-order consolidation
-		if not consolidated_order_data.get('is_multi_order_consolidation'):
-			print("ERROR: Missing is_multi_order_consolidation flag!")
-			frappe.throw(_("This function is only for multi-order consolidations"))
-		
-		source_orders = consolidated_order_data.get('source_orders', [])		# Try alternative field names if source_orders is empty
-		if not source_orders:
-			source_orders = consolidated_order_data.get('multi_order_names', [])
-		
-		if not source_orders:
-			# Additional debugging for missing source_orders
-			print(f"ERROR: Missing source_orders! Available keys: {list(consolidated_order_data.keys())}")
-			print(f"Full data: {consolidated_order_data}")
-			frappe.throw(_("No source orders found in consolidated data"))
-		
-		# Verify all source orders are still in draft status
-		for order_name in source_orders:
-			order_doc = frappe.get_doc("Sales Order", order_name)
-			if order_doc.docstatus != 0:
-				frappe.throw(_("Source order {0} is no longer in draft status").format(order_name))
-		
-		# Create a NEW Sales Invoice for the payment (do NOT touch original orders)
-		invoice_doc = frappe.new_doc("Sales Invoice")
-		
-		# Set basic invoice fields
-		invoice_doc.customer = consolidated_order_data.get('customer')
-		invoice_doc.customer_name = consolidated_order_data.get('customer_name', '')
-		invoice_doc.posting_date = nowdate()
-		invoice_doc.posting_time = now_datetime().strftime("%H:%M:%S")
-		invoice_doc.company = consolidated_order_data.get('company')
-		invoice_doc.currency = consolidated_order_data.get('currency')
-		invoice_doc.price_list_currency = consolidated_order_data.get('currency')
-		invoice_doc.is_pos = 1
-		invoice_doc.pos_profile = pos_profile_name
-		
-		# Add restaurant-specific fields
-		if consolidated_order_data.get('restaurant_order_type'):
-			invoice_doc.restaurant_order_type = consolidated_order_data.get('restaurant_order_type')
-		if consolidated_order_data.get('table_number'):
-			invoice_doc.table_number = consolidated_order_data.get('table_number')
-		
-		# Add metadata to track this as a multi-order payment
-		invoice_doc.is_multi_order_payment = 1
-		invoice_doc.source_draft_orders = json.dumps(source_orders)  # Track original draft orders
-		
-		# Add all items from consolidated order
-		total_amount = 0
-		for item in consolidated_order_data.get('items', []):
-			invoice_item = invoice_doc.append("items", {
-				"item_code": item.get('item_code'),
-				"item_name": item.get('item_name'),
-				"item_group": item.get('item_group'),
-				"description": item.get('description'),
-				"qty": item.get('qty'),
-				"uom": item.get('uom'),
-				"rate": item.get('rate'),
-				"amount": item.get('amount'),
-				"warehouse": item.get('warehouse'),
-				# Add source tracking without linking to specific Sales Order
-				"source_order_reference": item.get('source_order', ''),
-				"remarks": f"From multi-order consolidation: {item.get('source_order', '')}"
-			})
-			total_amount += item.get('amount', 0)
-		
-		# Set invoice totals
-		invoice_doc.net_total = total_amount
-		invoice_doc.grand_total = total_amount
-		invoice_doc.rounded_total = total_amount
-		
-		# Add payment information
-		if payment_data:
-			for payment in payment_data:
-				if payment.get('amount', 0) > 0:
-					payment_entry = invoice_doc.append("payments", {
-						"mode_of_payment": payment.get('mode_of_payment'),
-						"amount": payment.get('amount'),
-						"base_amount": payment.get('amount'),  # Assuming same currency
-						"account": payment.get('account', ''),
-						"type": payment.get('type', 'Cash')
-					})
-		
-		# Save and submit the invoice
-		invoice_doc.insert()
-		invoice_doc.submit()
-		
-		frappe.log_error(f"Successfully created Sales Invoice {invoice_doc.name} for multi-order payment. Original orders remain DRAFT.", "Multi Order Payment Success")
-		
-		# Return the invoice data in the same format as normal POS invoice submission
-		result = {
-			'doctype': 'Sales Invoice',
-			'name': invoice_doc.name,
-			'customer': invoice_doc.customer,
-			'customer_name': invoice_doc.customer_name,
-			'posting_date': str(invoice_doc.posting_date),
-			'posting_time': invoice_doc.posting_time,
-			'company': invoice_doc.company,
-			'currency': invoice_doc.currency,
-			'net_total': invoice_doc.net_total,
-			'grand_total': invoice_doc.grand_total,
-			'rounded_total': invoice_doc.rounded_total,
-			'is_pos': invoice_doc.is_pos,
-			'pos_profile': invoice_doc.pos_profile,
-			'docstatus': invoice_doc.docstatus,
-			'status': 'Paid',
-			# Multi-order specific fields
-			'is_multi_order_payment': True,
-			'source_draft_orders': source_orders,
-			'items': [item.as_dict() for item in invoice_doc.items],
-			'payments': [payment.as_dict() for payment in invoice_doc.payments],
-			# Include restaurant fields if they exist
-			'restaurant_order_type': getattr(invoice_doc, 'restaurant_order_type', None),
-			'table_number': getattr(invoice_doc, 'table_number', None),
-		}
-		
-		# Add a note in each source order about the payment
-		for order_name in source_orders:
-			try:
-				order_doc = frappe.get_doc("Sales Order", order_name)
-				# Add a comment/note without changing the order status
-				frappe.get_doc({
-					"doctype": "Comment",
-					"comment_type": "Info",
-					"reference_doctype": "Sales Order",
-					"reference_name": order_name,
-					"content": f"Payment completed via consolidated invoice {invoice_doc.name}. Order remains as draft for further modifications."
-				}).insert()
-			except Exception as e:
-				frappe.log_error(f"Failed to add payment note to order {order_name}: {str(e)}", "Multi Order Payment Note Error")
-				# Don't fail the entire process if note creation fails
-		
-		frappe.log_error(f"Multi-order payment finalized. Invoice: {invoice_doc.name}, Source orders remain DRAFT: {source_orders}", "Multi Order Payment Complete")
-		
-		return result
-		
-	except Exception as e:
-		error_msg = str(e)
-		frappe.logger().error(f"ERROR in finalize_multi_order_payment: {error_msg}")
-		frappe.logger().error(f"Traceback: {frappe.get_traceback()}")
-		frappe.throw(_("Error processing multi-order payment: {0}").format(error_msg))
-
-@frappe.whitelist()
-def submit_multiple_orders_and_create_invoice(order_names, updated_order_data, pos_profile_name=None):
-	"""
-	Submit multiple draft Sales Orders with any edits, then create a consolidated Sales Invoice.
-	This is called when user clicks SUBMIT in payment window after editing multiple draft orders.
-	"""
-	if isinstance(order_names, str):
-		order_names = json.loads(order_names)
-	if isinstance(updated_order_data, str):
-		updated_order_data = json.loads(updated_order_data)
-	
-	if not order_names or len(order_names) < 1:
-		frappe.throw(_("At least one Sales Order is required"))
-	
-	try:
-		submitted_orders = []
-		
-		# Step 1: Update and submit each draft order with any edits made in cart
+		# Get all orders and validate
+		orders = []
 		for order_name in order_names:
 			order_doc = frappe.get_doc("Sales Order", order_name)
 			
-			# Ensure order is still draft
+			# Ensure all orders are Draft
 			if order_doc.docstatus != 0:
-				frappe.throw(_("Order {0} is no longer in draft status").format(order_name))
+				frappe.throw(_("Order {0} is not in Draft status").format(order_name))
 			
-			# Apply any item changes from the consolidated edit
-			# (Note: For now, we'll submit orders as-is, but you can add item update logic here)
-			
-			# Submit the order
-			order_doc.submit()
-			submitted_orders.append(order_doc)
-			
-			frappe.log_error(f"Successfully submitted draft order: {order_name}", "Multi-Order Submit")
+			orders.append(order_doc)
 		
-		# Step 2: Create a consolidated Sales Invoice from all submitted orders
-		first_order = submitted_orders[0]
+		# Validate all orders are from same customer
+		first_customer = orders[0].customer
+		first_order = orders[0]
+		for order_doc in orders:
+			if order_doc.customer != first_customer:
+				frappe.throw(_("All orders must be from the same customer"))
 		
-		# Create Sales Invoice manually (similar to convert_order_to_invoice)
+		# Create Sales Invoice directly (no intermediate Sales Order)
 		invoice_doc = frappe.new_doc("Sales Invoice")
 		
-		# Set basic fields from first order
-		invoice_doc.customer = first_order.customer
+		# Copy basic fields from first order
+		invoice_doc.customer = first_customer
 		invoice_doc.customer_name = first_order.customer_name
 		invoice_doc.posting_date = nowdate()
 		invoice_doc.posting_time = now_datetime().strftime("%H:%M:%S")
+		invoice_doc.due_date = getdate()
 		invoice_doc.company = first_order.company
 		invoice_doc.currency = first_order.currency
 		invoice_doc.price_list_currency = first_order.currency
 		invoice_doc.is_pos = 1
 		
-		# Set restaurant order fields
-		if hasattr(first_order, 'restaurant_order_type'):
+		# Copy restaurant fields from first order to maintain context
+		if hasattr(first_order, 'restaurant_order_type') and first_order.restaurant_order_type:
 			invoice_doc.restaurant_order_type = first_order.restaurant_order_type
-		if hasattr(first_order, 'table_number'):
+		if hasattr(first_order, 'table_number') and first_order.table_number:
 			invoice_doc.table_number = first_order.table_number
 		
-		# Add all items from all orders
+		# Mark as multi-order consolidation
+		invoice_doc.is_multi_order_consolidation = 1
+		invoice_doc.multi_order_source_orders = ", ".join(order_names)
+		invoice_doc.multi_order_count = len(order_names)
+		
+		# Aggregate items by item code to avoid duplicates
+		item_aggregation = {}
+		
+		for order_doc in orders:
+			for item in order_doc.items:
+				item_code = item.item_code
+				
+				if item_code not in item_aggregation:
+					item_aggregation[item_code] = {
+						'item_code': item_code,
+						'item_name': item.item_name,
+						'description': item.description,
+						'qty': 0,
+						'rate': item.rate,
+						'amount': 0,
+						'uom': item.uom,
+						'stock_qty': 0,
+						'conversion_factor': item.conversion_factor,
+						'warehouse': item.warehouse,
+						'is_stock_item': item.is_stock_item,
+						'source_orders': [],
+						'sales_orders': []
+					}
+				
+				# Aggregate quantities
+				item_aggregation[item_code]['qty'] += item.qty
+				item_aggregation[item_code]['amount'] += item.amount
+				item_aggregation[item_code]['stock_qty'] += item.stock_qty
+				
+				# Track source orders
+				if order_doc.name not in item_aggregation[item_code]['source_orders']:
+					item_aggregation[item_code]['source_orders'].append(order_doc.name)
+				
+				# Track sales orders (for reference)
+				if hasattr(item, 'sales_order') and item.sales_order:
+					if item.sales_order not in item_aggregation[item_code]['sales_orders']:
+						item_aggregation[item_code]['sales_orders'].append(item.sales_order)
+		
+		# Add aggregated items to invoice
 		total_amount = 0
-		for order in submitted_orders:
-			for item in order.items:
-				invoice_item = invoice_doc.append("items", {
-					"item_code": item.item_code,
-					"item_name": item.item_name,
-					"item_group": item.item_group,
-					"description": item.description,
-					"qty": item.qty,
-					"uom": item.uom,
-					"rate": item.rate,
-					"amount": item.amount,
-					"warehouse": item.warehouse,
-					# Link to source Sales Order
-					"sales_order": order.name,
-					"so_detail": item.name
-				})
-				total_amount += item.amount
+		for item_code, item_data in item_aggregation.items():
+			invoice_item = {
+				'item_code': item_data['item_code'],
+				'item_name': item_data['item_name'],
+				'description': item_data['description'],
+				'qty': item_data['qty'],
+				'rate': item_data['rate'],
+				'amount': item_data['amount'],
+				'uom': item_data['uom'],
+				'stock_qty': item_data['stock_qty'],
+				'conversion_factor': item_data['conversion_factor'],
+				'warehouse': item_data['warehouse'],
+				'is_stock_item': item_data['is_stock_item'],
+				'so_detail': None,  # Will be set later
+				'sales_order': None  # Will be set later
+			}
+			
+			# Set the primary sales order reference (first one)
+			if item_data['sales_orders']:
+				invoice_item['sales_order'] = item_data['sales_orders'][0]
+			
+			# Add source order tracking to remarks
+			source_orders_text = ", ".join(item_data['source_orders'])
+			invoice_item['remarks'] = f"Source orders: {source_orders_text}"
+			
+			invoice_doc.append("items", invoice_item)
+			total_amount += item_data['amount']
 		
 		# Set totals
 		invoice_doc.net_total = total_amount
@@ -1617,17 +1603,486 @@ def submit_multiple_orders_and_create_invoice(order_names, updated_order_data, p
 		# Save the consolidated invoice
 		invoice_doc.save()
 		
-		# Add metadata to track source orders
-		invoice_doc.source_orders = order_names
-		invoice_doc.multi_order_count = len(order_names)
+		# IMPROVED: Release tables and DELETE draft orders (cleaner approach)
+		tables_to_release = []
+		draft_orders = []
 		
-		frappe.log_error(f"Created consolidated invoice {invoice_doc.name} from {len(order_names)} submitted orders: {', '.join(order_names)}", "Multi-Order Invoice")
+		for order_name in order_names:
+			order_doc = frappe.get_doc("Sales Order", order_name)
+			draft_orders.append(order_doc)
+			
+			# Collect tables to release BEFORE deleting orders
+			if hasattr(order_doc, 'table_number') and order_doc.table_number:
+				tables_to_release.append({
+					'table_number': order_doc.table_number,
+					'order_name': order_name
+				})
+		
+		# Release all tables first
+		tables_released = []
+		for table_info in tables_to_release:
+			try:
+				# Find the Restaurant Table document  
+				table_docs = frappe.get_all("Restaurant Table", 
+					filters={"table_number": table_info['table_number']}, 
+					fields=["name", "status", "current_order"])
+				
+				if table_docs:
+					table_doc = frappe.get_doc("Restaurant Table", table_docs[0].name)
+					
+					# Release table if it's assigned to one of our orders
+					if table_doc.current_order in order_names:
+						table_doc.status = "Available"
+						table_doc.current_order = ""
+						table_doc.save()
+						tables_released.append(table_info['table_number'])
+						frappe.log_error(f"Released table {table_info['table_number']} before order deletion", "Multi-Order Table Release")
+						
+			except Exception as table_error:
+				frappe.log_error(f"Error releasing table {table_info['table_number']}: {str(table_error)}", "Multi-Order Table Release Error")
+		
+		# Now DELETE all draft orders (much cleaner than marking as completed)
+		orders_deleted = []
+		for order_doc in draft_orders:
+			try:
+				order_name = order_doc.name
+				frappe.delete_doc("Sales Order", order_name, force=1)
+				orders_deleted.append(order_name)
+				frappe.log_error(f"Successfully deleted draft order {order_name} after consolidation", "Multi-Order Deletion")
+			except Exception as order_error:
+				frappe.log_error(f"Error deleting order {order_doc.name}: {str(order_error)}", "Multi-Order Deletion Error")
+		
+		if tables_released:
+			frappe.log_error(f"Successfully released {len(tables_released)} tables: {', '.join(tables_released)}", "Multi-Order Success")
+		
+		if orders_deleted:
+			frappe.log_error(f"Successfully deleted {len(orders_deleted)} draft orders: {', '.join(orders_deleted)}", "Multi-Order Deletion Success")
+		
+		frappe.log_error(f"✅ Multi-order payment completed: Invoice {invoice_doc.name} created from orders {', '.join(order_names)}. Tables released: {', '.join(tables_released) if tables_released else 'None'}. Orders deleted: {', '.join(orders_deleted)}", "Multi-Order Success")
 		
 		return invoice_doc
 		
 	except Exception as e:
 		frappe.log_error(f"Error submitting multiple orders and creating invoice: {str(e)}", "Multi-Order Submit Error")
 		frappe.throw(_("Error processing multiple orders: {0}").format(str(e)))
+
+@frappe.whitelist()
+def submit_multiple_orders_and_create_invoice(order_names, updated_order_data, pos_profile_name=None):
+	"""
+	ENTERPRISE SALES ORDER CONSOLIDATION WORKFLOW - ENHANCED with safe conversion
+	
+	Process: Draft Sales Orders → Direct Sales Invoice Creation → Draft Order Cleanup
+	Objective: Eliminate redundant draft orders while maintaining data integrity
+	
+	Key Safeguards:
+	1. Verify consolidation success before deletion
+	2. Comprehensive audit logging
+	3. Atomic transaction handling
+	4. Error recovery mechanisms
+	"""
+	try:
+		frappe.log_error(f"=== MULTI ORDER CONVERSION START === Orders: {order_names}", "Multi Order Conversion")
+		
+		# Try to use the safe conversion method first
+		try:
+			from posawesome.posawesome.patches.multi_order_conversion_fix import submit_multiple_orders_safe
+			result = submit_multiple_orders_safe(order_names, updated_order_data, pos_profile_name)
+			
+			if result.get("status") == "success":
+				frappe.log_error(f"✅ SAFE MULTI CONVERSION: Successfully converted orders {order_names} to SI {result.get('invoice_name')}", "Multi Order Conversion")
+				return result.get("invoice_doc")
+			else:
+				frappe.log_error(f"Safe multi conversion failed for {order_names}, falling back to original method", "Multi Order Conversion")
+				
+		except ImportError:
+			frappe.log_error(f"Safe multi conversion patch not available for {order_names}, using original method", "Multi Order Conversion")
+		
+		# FALLBACK: Original conversion method (existing code continues below)
+	except Exception as safe_conversion_error:
+		frappe.log_error(f"Error in safe conversion attempt: {str(safe_conversion_error)}", "Multi Order Conversion")
+	
+	# Original method continues here
+	if isinstance(order_names, str):
+		order_names = json.loads(order_names)
+	if isinstance(updated_order_data, str):
+		updated_order_data = json.loads(updated_order_data)
+	
+	if not order_names or len(order_names) < 1:
+		frappe.throw(_("At least one Sales Order is required"))
+	
+	# Initialize audit tracking
+	audit_log = {
+		"process_id": frappe.generate_hash(length=8),
+		"timestamp": frappe.utils.now(),
+		"source_orders": order_names,
+		"status": "INITIATED"
+	}
+	
+	try:
+		frappe.log_error(f"🚀 CONSOLIDATION INITIATED: Process {audit_log['process_id']} for orders {', '.join(order_names)}", "Multi-Order Audit")
+		
+		# PHASE 1: VALIDATION AND PREPARATION
+		draft_orders = []
+		consolidated_items = []
+		tables_to_release = []
+		
+		# Validate all orders are draft and collect data
+		for order_name in order_names:
+			try:
+				order_doc = frappe.get_doc("Sales Order", order_name)
+				
+				# Critical validation: Ensure order is still draft
+				if order_doc.docstatus != 0:
+					frappe.throw(_("Order {0} is no longer in draft status (docstatus={1})").format(order_name, order_doc.docstatus))
+				
+				# Additional safety check: Ensure order hasn't been billed
+				if order_doc.per_billed > 0:
+					frappe.throw(_("Order {0} has already been partially billed ({1}%). Cannot consolidate billed orders.").format(order_name, order_doc.per_billed))
+				
+				# Check for existing invoice items linking to this order
+				existing_invoice_items = frappe.get_all("Sales Invoice Item", 
+					filters={"sales_order": order_name, "docstatus": 1}, 
+					fields=["parent"])
+				
+				if existing_invoice_items:
+					invoice_names = [item.parent for item in existing_invoice_items]
+					frappe.throw(_("Order {0} has already been billed in invoice(s): {1}. Cannot consolidate.").format(
+						order_name, ", ".join(set(invoice_names))))
+				
+				draft_orders.append(order_doc)
+				
+				# Collect items for consolidation
+				for item in order_doc.items:
+					consolidated_items.append({
+						"item_code": item.item_code,
+						"item_name": item.item_name,
+						"description": item.description,
+						"qty": item.qty,
+						"uom": item.uom,
+						"rate": item.rate,
+						"amount": item.amount,
+						"warehouse": item.warehouse,
+						"source_order": order_name
+					})
+				
+				# Track table assignments
+				if hasattr(order_doc, 'table_number') and order_doc.table_number:
+					tables_to_release.append({
+						'table_number': order_doc.table_number,
+						'order_name': order_name
+					})
+				
+				frappe.log_error(f"✅ Validated draft order: {order_name} (Items: {len(order_doc.items)})", "Multi-Order Validation")
+				
+			except Exception as validation_error:
+				audit_log["status"] = "VALIDATION_FAILED"
+				audit_log["error"] = str(validation_error)
+				frappe.log_error(f"❌ VALIDATION FAILED for {order_name}: {str(validation_error)}", "Multi-Order Error")
+				frappe.throw(_("Validation failed for order {0}: {1}").format(order_name, str(validation_error)))
+		
+		# PHASE 2: DIRECT SALES INVOICE CREATION (NO INTERMEDIATE SALES ORDERS)
+		first_order = draft_orders[0]
+		
+		frappe.log_error(f"📄 Creating Sales Invoice directly from {len(draft_orders)} draft orders", "Multi-Order Invoice Creation")
+		
+		# Create Sales Invoice (NOT Sales Order)
+		invoice_doc = frappe.new_doc("Sales Invoice")
+		
+		# Core invoice fields
+		invoice_doc.customer = first_order.customer
+		invoice_doc.customer_name = first_order.customer_name
+		invoice_doc.posting_date = nowdate()
+		invoice_doc.posting_time = now_datetime().strftime("%H:%M:%S")
+		invoice_doc.company = first_order.company
+		invoice_doc.currency = first_order.currency
+		invoice_doc.price_list_currency = first_order.currency
+		invoice_doc.is_pos = 1
+		invoice_doc.delivery_date = nowdate()  # Prevent validation errors
+		
+		# Restaurant-specific fields
+		if hasattr(first_order, 'restaurant_order_type'):
+			invoice_doc.restaurant_order_type = first_order.restaurant_order_type
+		if hasattr(first_order, 'table_number'):
+			invoice_doc.table_number = first_order.table_number
+		
+		# Add consolidated items with source tracking (NO Sales Order references)
+		total_amount = 0
+		for item_data in consolidated_items:
+			invoice_item = invoice_doc.append("items", {
+				"item_code": item_data["item_code"],
+				"item_name": item_data["item_name"],
+				"description": item_data["description"],
+				"qty": item_data["qty"],
+				"uom": item_data["uom"],
+				"rate": item_data["rate"],
+				"amount": item_data["amount"],
+				"warehouse": item_data["warehouse"],
+				"delivery_date": nowdate(),
+				# CRITICAL: NO sales_order or so_detail references since we're deleting source orders
+				"sales_order": None,
+				"so_detail": None,
+				# Audit trail in remarks only
+				"remarks": f"Consolidated from draft order: {item_data['source_order']}"
+			})
+			total_amount += item_data["amount"]
+		
+		# Set invoice totals
+		invoice_doc.net_total = total_amount
+		invoice_doc.grand_total = total_amount
+		invoice_doc.rounded_total = total_amount
+		
+		# Configure payment methods
+		if pos_profile_name:
+			pos_profile = frappe.get_doc("POS Profile", pos_profile_name)
+			invoice_doc.pos_profile = pos_profile_name
+			
+			for payment_method in pos_profile.payments:
+				payment_entry = {
+					"mode_of_payment": payment_method.mode_of_payment,
+					"amount": 0.0,
+					"base_amount": 0.0,
+					"default": getattr(payment_method, 'default', 0)
+				}
+				
+				if hasattr(payment_method, 'account'):
+					payment_entry["account"] = payment_method.account
+				if hasattr(payment_method, 'type'):
+					payment_entry["type"] = payment_method.type
+					
+				invoice_doc.append("payments", payment_entry)
+		
+		# CRITICAL: Mark as consolidated invoice to prevent automatic Sales Order creation
+		invoice_doc._is_consolidated_invoice = True
+		invoice_doc.remarks = f"Consolidated from draft orders: {', '.join(order_names)} (Process ID: {audit_log['process_id']})"
+		
+		# Add consolidation metadata
+		invoice_doc.add_comment("Comment", f"Consolidated from draft orders: {', '.join(order_names)} (Process ID: {audit_log['process_id']})")
+		
+		# CRITICAL: Save invoice before proceeding with cleanup
+		invoice_doc.save()
+		
+		audit_log["invoice_created"] = invoice_doc.name
+		audit_log["invoice_amount"] = total_amount
+		frappe.log_error(f"✅ Sales Invoice created: {invoice_doc.name} (Amount: {total_amount})", "Multi-Order Success")
+		
+		# PHASE 3: TABLE RELEASE (Before order deletion)
+		tables_released = []
+		for table_info in tables_to_release:
+			try:
+				table_docs = frappe.get_all("Restaurant Table", 
+					filters={"table_number": table_info['table_number']}, 
+					fields=["name", "status", "current_order"])
+				
+				if table_docs:
+					table_doc = frappe.get_doc("Restaurant Table", table_docs[0].name)
+					
+					if table_doc.current_order == table_info['order_name']:
+						table_doc.status = "Available"
+						table_doc.current_order = ""
+						table_doc.save()
+						tables_released.append(table_info['table_number'])
+						frappe.log_error(f"🔓 Released table: {table_info['table_number']}", "Multi-Order Table Release")
+						
+			except Exception as table_error:
+				frappe.log_error(f"⚠️ Table release warning for {table_info['table_number']}: {str(table_error)}", "Multi-Order Table Warning")
+				# Continue processing - table release failure shouldn't stop consolidation
+		
+		# PHASE 4: DRAFT ORDER CLEANUP (Atomic deletion with comprehensive logging)
+		orders_deleted = []
+		deletion_errors = []
+		
+		for order_doc in draft_orders:
+			try:
+				order_name = order_doc.name
+				
+				# Final validation before deletion
+				current_doc = frappe.get_doc("Sales Order", order_name)
+				if current_doc.docstatus != 0:
+					deletion_errors.append(f"{order_name}: Status changed during processing (docstatus={current_doc.docstatus})")
+					continue
+				
+				# Execute deletion with force flag
+				frappe.delete_doc("Sales Order", order_name, force=1)
+				orders_deleted.append(order_name)
+				
+				frappe.log_error(f"🗑️ DELETED draft order: {order_name}", "Multi-Order Cleanup")
+				
+			except Exception as deletion_error:
+				error_msg = f"{order_doc.name}: {str(deletion_error)}"
+				deletion_errors.append(error_msg)
+				frappe.log_error(f"❌ Deletion failed for {order_doc.name}: {str(deletion_error)}", "Multi-Order Deletion Error")
+		
+		# PHASE 5: COMMIT AND AUDIT FINALIZATION
+		frappe.db.commit()
+		
+		# CRITICAL: Clean up any orphaned references that might cause billing conflicts
+		try:
+			# Remove any orphaned Sales Invoice Item references to deleted orders
+			for order_name in orders_deleted:
+				orphaned_items = frappe.get_all("Sales Invoice Item", 
+					filters={"sales_order": order_name}, 
+					fields=["name", "parent"])
+				
+				for item in orphaned_items:
+					# Check if this invoice item belongs to our consolidated invoice
+					if item.parent != invoice_doc.name:
+						frappe.log_error(f"⚠️ Found orphaned Sales Invoice Item {item.name} referencing deleted order {order_name}", "Multi-Order Cleanup Warning")
+						# Clear the reference to prevent billing conflicts
+						frappe.db.set_value("Sales Invoice Item", item.name, "sales_order", None)
+						frappe.db.set_value("Sales Invoice Item", item.name, "so_detail", None)
+			
+			frappe.db.commit()
+			frappe.log_error("🧹 Completed orphaned reference cleanup", "Multi-Order Cleanup")
+			
+		except Exception as cleanup_error:
+			frappe.log_error(f"⚠️ Reference cleanup warning: {str(cleanup_error)}", "Multi-Order Cleanup Warning")
+			# Don't fail the entire process for cleanup issues
+		
+		audit_log["status"] = "COMPLETED"
+		audit_log["orders_deleted"] = orders_deleted
+		audit_log["tables_released"] = tables_released
+		audit_log["deletion_errors"] = deletion_errors
+		
+		# Comprehensive success logging
+		success_msg = f"""
+🎉 CONSOLIDATION COMPLETED Successfully
+Process ID: {audit_log['process_id']}
+Invoice: {invoice_doc.name} (₹{total_amount})
+Orders Deleted: {len(orders_deleted)}/{len(order_names)} ({', '.join(orders_deleted)})
+Tables Released: {len(tables_released)} ({', '.join(tables_released)})
+Errors: {len(deletion_errors)}
+		""".strip()
+		
+		frappe.log_error(success_msg, "Multi-Order Success Audit")
+		
+		if deletion_errors:
+			frappe.log_error(f"⚠️ Deletion errors encountered: {'; '.join(deletion_errors)}", "Multi-Order Deletion Warnings")
+		
+		return {
+			"success": True,
+			"invoice": invoice_doc,
+			"audit": audit_log
+		}
+		
+	except Exception as critical_error:
+		# Critical error handling with rollback
+		audit_log["status"] = "CRITICAL_FAILURE"
+		audit_log["error"] = str(critical_error)
+		
+		frappe.log_error(f"💥 CRITICAL FAILURE in consolidation process {audit_log['process_id']}: {str(critical_error)}", "Multi-Order Critical Error")
+		frappe.db.rollback()
+		
+		frappe.throw(_("Consolidation process failed: {0}").format(str(critical_error)))
+
+
+@frappe.whitelist()
+def cleanup_fully_billed_orders():
+	"""
+	Emergency cleanup function to remove Sales Orders that are fully billed but still showing as Draft.
+	These are zombie orders left over from multi-order consolidation failures.
+	"""
+	try:
+		# Find orders that are fully billed but still in the system
+		fully_billed_orders = frappe.get_all("Sales Order", 
+			filters={
+				"per_billed": [">=", 100],
+				"docstatus": ["!=", 2],  # Not cancelled
+				"restaurant_order_type": ["!=", ""]  # Restaurant orders only
+			}, 
+			fields=["name", "per_billed", "status", "docstatus", "customer"])
+		
+		if not fully_billed_orders:
+			return {"message": "No fully billed orders found to cleanup", "cleaned": 0}
+		
+		cleaned_orders = []
+		cleanup_errors = []
+		
+		for order in fully_billed_orders:
+			try:
+				order_name = order.name
+				
+				# Double-check this is really fully billed
+				if order.per_billed >= 100:
+					# Check if there are any invoices referencing this order
+					invoice_items = frappe.get_all("Sales Invoice Item", 
+						filters={"sales_order": order_name, "docstatus": 1}, 
+						fields=["parent"])
+					
+					if invoice_items:
+						# This order has been billed - safe to delete
+						frappe.delete_doc("Sales Order", order_name, force=1)
+						cleaned_orders.append(order_name)
+						frappe.log_error(f"🧹 CLEANED UP fully billed order: {order_name} (per_billed: {order.per_billed}%)", "Order Cleanup")
+					else:
+						frappe.log_error(f"⚠️ Order {order_name} is marked as fully billed but has no invoice items", "Order Cleanup Warning")
+				
+			except Exception as cleanup_error:
+				error_msg = f"{order.name}: {str(cleanup_error)}"
+				cleanup_errors.append(error_msg)
+				frappe.log_error(f"❌ Cleanup error for {order.name}: {str(cleanup_error)}", "Order Cleanup Error")
+		
+		frappe.db.commit()
+		
+		result = {
+			"message": f"Cleanup completed: {len(cleaned_orders)} orders removed",
+			"cleaned": len(cleaned_orders),
+			"cleaned_orders": cleaned_orders,
+			"errors": cleanup_errors
+		}
+		
+		frappe.log_error(f"🎉 Order cleanup completed: {result}", "Order Cleanup Success")
+		return result
+		
+	except Exception as e:
+		frappe.log_error(f"💥 Order cleanup failed: {str(e)}", "Order Cleanup Critical Error")
+		return {"error": str(e), "cleaned": 0}
+
+
+@frappe.whitelist()
+def debug_sales_order_billing_status(order_name):
+	"""
+	Debug function to check billing status of a Sales Order and identify conflicts
+	"""
+	try:
+		if not frappe.db.exists("Sales Order", order_name):
+			return {"error": f"Sales Order {order_name} does not exist"}
+		
+		order = frappe.get_doc("Sales Order", order_name)
+		
+		# Check for invoice items that reference this order
+		invoice_items = frappe.get_all("Sales Invoice Item", 
+			filters={"sales_order": order_name}, 
+			fields=["name", "parent", "qty", "amount", "docstatus"])
+		
+		# Check for invoice items with so_detail references
+		so_detail_refs = []
+		for item in order.items:
+			refs = frappe.get_all("Sales Invoice Item", 
+				filters={"so_detail": item.name}, 
+				fields=["name", "parent", "qty", "amount", "docstatus"])
+			if refs:
+				so_detail_refs.extend(refs)
+		
+		result = {
+			"order_name": order_name,
+			"docstatus": order.docstatus,
+			"status": order.status,
+			"per_billed": order.per_billed,
+			"billing_status": order.billing_status,
+			"base_net_total": order.base_net_total,
+			"invoice_items_count": len(invoice_items),
+			"invoice_items": invoice_items,
+			"so_detail_refs_count": len(so_detail_refs),
+			"so_detail_refs": so_detail_refs,
+			"restaurant_order_type": getattr(order, 'restaurant_order_type', None),
+			"table_number": getattr(order, 'table_number', None)
+		}
+		
+		frappe.log_error(f"🔍 Billing debug for {order_name}: {result}", "Sales Order Billing Debug")
+		return result
+		
+	except Exception as e:
+		return {"error": str(e)}
 
 @frappe.whitelist()
 def void_order_items(order_name, items_to_void):

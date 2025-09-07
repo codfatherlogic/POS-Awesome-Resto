@@ -3078,6 +3078,10 @@ export default {
 	},
 
 	async mounted() {
+		// Clear items array to prevent duplicates from previous sessions
+		this.items = [];
+		console.log("[ItemsSelector] mounted: cleared items array to prevent duplicates");
+		
 		// Ensure POS profile is available
 		if (!this.pos_profile || !this.pos_profile.name) {
 			try {

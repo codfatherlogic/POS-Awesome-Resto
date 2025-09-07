@@ -1254,7 +1254,9 @@ export default {
 							color: "success",
 						});
 						
-						// Continue with regular payment submission process below
+						// Multi-order consolidation is complete - invoice is already created and submitted
+						// Continue with regular payment submission process for the NEW consolidated invoice
+						console.log("Multi-order consolidation complete, continuing with payment submission for consolidated invoice:", this.invoice_doc.name);
 					} else {
 						throw new Error("Failed to submit multiple orders and create invoice");
 					}

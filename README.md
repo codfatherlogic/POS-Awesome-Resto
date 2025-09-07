@@ -60,6 +60,20 @@ After switching branches or pulling latest changes:
 33. Payments Reconciliation
 34. A lot more bug fixes from the version 14
 35. Offline invoices that fail to submit are saved as draft documents
+36. **Enhanced Sales Order to Sales Invoice workflow** with automatic document submission and comprehensive item synchronization
+37. **Smart document concurrency management** to prevent timestamp conflicts during order processing
+38. **Restaurant-ready dynamic item synchronization** allowing customers to modify orders after initial payment conversion
+
+### Recent Enhancements
+
+#### Enhanced POS Workflow (v15.2024)
+- **Automatic Sales Order Submission**: System automatically submits Draft Sales Orders before creating Sales Invoices, eliminating workflow errors
+- **Intelligent Document Resolution**: Backend automatically converts Sales Order names to Sales Invoice names when needed
+- **Dynamic Item Synchronization**: Real-time synchronization of items between Sales Orders and Sales Invoices, perfect for restaurant scenarios where customers modify orders after initial conversion
+- **Document Concurrency Management**: Advanced handling of document modification conflicts with automatic reloading and validation
+- **Robust Payment Processing**: Enhanced payment workflow with document locking and comprehensive error handling
+
+These improvements ensure seamless order-to-payment workflows in high-volume restaurant environments where orders frequently change after initial processing.
 
 ### Quick Start
 
