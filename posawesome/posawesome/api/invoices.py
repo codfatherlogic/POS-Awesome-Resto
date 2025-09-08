@@ -180,6 +180,28 @@ def _update_related_sales_orders(invoice_doc):
                 frappe.log_error(f"SO {so_name} billing update failed: {str(e)}", "SO Update Debug")
                 # Don't fail the invoice submission if SO update fails
                 pass
+        
+        # CONSOLIDATION FINALIZATION: Check if any of the processed Sales Orders were consolidated
+        # and finalize the consolidation process now that the invoice is submitted
+        for so_name in sales_orders:
+            try:
+                # Check if this Sales Order was part of a consolidation
+                so_doc = frappe.get_doc("Sales Order", so_name)
+                if hasattr(so_doc, 'custom_consolidated_invoice_reference') and so_doc.custom_consolidated_invoice_reference:
+                    # This is a consolidated order - finalize the consolidation process
+                    frappe.log_error(f"CONSOLIDATION FINALIZE: Found consolidated order {so_name}, calling finalization", "Consolidation Debug")
+                    
+                    # Import and call the finalization function
+                    from posawesome.posawesome.api.restaurant_orders import finalize_consolidated_order_submission
+                    finalize_consolidated_order_submission(so_name)
+                    
+                    frappe.log_error(f"CONSOLIDATION FINALIZE: Successfully finalized consolidation for {so_name}", "Consolidation Debug")
+                    
+            except Exception as e:
+                frappe.log_error(f"CONSOLIDATION FINALIZE: Error finalizing consolidation for {so_name}: {str(e)}", "Consolidation Debug")
+                # Don't fail the invoice submission if consolidation finalization fails
+                pass
+                
     except Exception as e:
         # Use shorter error message to avoid "Value too big" error  
         frappe.log_error(f"Invoice {invoice_doc.name} SO updates failed: {str(e)}", "SO Update Debug")

@@ -63855,11 +63855,33 @@ const cae = {
     },
     // Get dynamic submit button text based on document type and status
     getSubmitButtonText() {
-      return this.invoice_doc.is_multi_order_edit ? this.__("Submit {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]) : this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0 ? this.__("Submit Order") : this.invoice_doc.doctype === "Sales Invoice" ? this.__("Pay") : this.__("Submit");
+      if (this.invoice_doc.is_multi_order_edit)
+        return this.__("Submit {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]);
+      if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0 && this.invoice_doc.custom_consolidated_invoice_reference) {
+        const e = this.invoice_doc.custom_consolidated_invoice_reference.split(",").length;
+        return this.__("Submit Consolidated Order ({0} Orders)", [e]);
+      } else {
+        if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0)
+          return this.__("Submit Order");
+        if (this.invoice_doc.doctype === "Sales Invoice")
+          return this.__("Pay");
+      }
+      return this.__("Submit");
     },
     // Get dynamic submit and print button text based on document type and status
     getSubmitPrintButtonText() {
-      return this.invoice_doc.is_multi_order_edit ? this.__("Submit & Print {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]) : this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0 ? this.__("Submit & Print Order") : this.invoice_doc.doctype === "Sales Invoice" ? this.__("Pay & Print") : this.__("Submit & Print");
+      if (this.invoice_doc.is_multi_order_edit)
+        return this.__("Submit & Print {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]);
+      if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0 && this.invoice_doc.custom_consolidated_invoice_reference) {
+        const e = this.invoice_doc.custom_consolidated_invoice_reference.split(",").length;
+        return this.__("Submit & Print Consolidated Order ({0} Orders)", [e]);
+      } else {
+        if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0)
+          return this.__("Submit & Print Order");
+        if (this.invoice_doc.doctype === "Sales Invoice")
+          return this.__("Pay & Print");
+      }
+      return this.__("Submit & Print");
     },
     // Ensure all payments are negative for return invoices
     ensureReturnPaymentsAreNegative() {
@@ -63909,6 +63931,48 @@ const cae = {
         } catch (o) {
           console.error("Error submitting multiple draft restaurant orders:", o), this.eventBus.emit("show_message", {
             title: __("Error submitting multiple orders: {0}", [o.message || "Unknown error"]),
+            color: "error"
+          }), this.loading = !1;
+          return;
+        }
+      } else if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0 && this.invoice_doc.custom_consolidated_invoice_reference) {
+        console.log("Submitting consolidated draft restaurant order:", this.invoice_doc.name), console.log("Source orders:", this.invoice_doc.custom_consolidated_invoice_reference);
+        try {
+          const o = JSON.parse(JSON.stringify(this.invoice_doc.payments || []));
+          console.log("Preserving payment amounts for consolidated order:", o);
+          const l = await frappe.call({
+            method: "posawesome.posawesome.api.restaurant_orders.submit_restaurant_order",
+            args: {
+              order_data: this.invoice_doc
+            }
+          });
+          if (l.message) {
+            console.log("Successfully submitted consolidated Sales Order:", l.message.name);
+            const s = await frappe.call({
+              method: "posawesome.posawesome.api.restaurant_orders.convert_order_to_invoice",
+              args: {
+                sales_order_name: l.message.name,
+                pos_profile_name: this.pos_profile.name
+              }
+            });
+            s.message && (this.invoice_doc = s.message, console.log("Successfully converted consolidated order to Sales Invoice:", this.invoice_doc.name), o && o.length > 0 && (console.log("Restoring payment amounts to consolidated invoice..."), o.forEach((d) => {
+              const u = this.invoice_doc.payments.find(
+                (f) => f.mode_of_payment === d.mode_of_payment
+              );
+              u && d.amount > 0 && (u.amount = d.amount, u.base_amount = d.base_amount || d.amount, console.log(`Restored ${d.mode_of_payment}: ${d.amount}`));
+            }), console.log("Payment amounts successfully restored to consolidated invoice")), this.invoiceType = "Invoice", this.eventBus.emit("change_invoice_type", "Invoice"), console.log("Finalizing consolidated order submission..."), await frappe.call({
+              method: "posawesome.posawesome.api.restaurant_orders.finalize_consolidated_order_submission",
+              args: {
+                consolidated_order_name: l.message.name
+              }
+            }), this.eventBus.emit("show_message", {
+              title: __("Consolidated order submitted successfully. Source orders have been closed. Proceed with payment."),
+              color: "success"
+            }), console.log("Consolidated order workflow complete, continuing with payment submission for invoice:", this.invoice_doc.name));
+          }
+        } catch (o) {
+          console.error("Error submitting consolidated restaurant order:", o), this.eventBus.emit("show_message", {
+            title: __("Error submitting consolidated order: {0}", [o.message || "Unknown error"]),
             color: "error"
           }), this.loading = !1;
           return;
@@ -65689,7 +65753,7 @@ function Iae(e, t, n, a, r, i) {
     }, 8, ["modelValue"])
   ]);
 }
-const Eae = /* @__PURE__ */ nn(cae, [["render", Iae], ["__scopeId", "data-v-dbed912d"]]), Pae = {
+const Eae = /* @__PURE__ */ nn(cae, [["render", Iae], ["__scopeId", "data-v-6a243b2b"]]), Pae = {
   mixins: [Oi],
   data: () => ({
     loading: !1,
@@ -67073,8 +67137,8 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
         }
         e.push(a.name);
       }
-      const t = this.selected[0].customer;
-      if (!this.selected.every((a) => a.customer === t)) {
+      const t = this.selected[0]?.customer || "customer";
+      if (this.selected[0]?.customer_name || this.selected[0]?.customer, !this.selected.every((a) => a.customer === t)) {
         this.eventBus.emit("show_message", {
           title: __("All selected orders must be from the same customer"),
           color: "error"
@@ -67083,33 +67147,30 @@ const Kae = /* @__PURE__ */ nn(Wae, [["render", Yae]]), Gae = {
       }
       this.converting = !0;
       try {
-        console.log("Calling backend API with order names:", e), console.log("Selected orders data for debugging:", JSON.stringify(this.selected.map((r) => ({
+        console.log("Calling consolidation workflow with order names:", e), console.log("Selected orders data for debugging:", JSON.stringify(this.selected.map((r) => ({
           name: r.name,
           customer: r.customer,
           customer_name: r.customer_name,
           docstatus: r.docstatus
         })), null, 2));
         const a = await frappe.call({
-          method: "posawesome.posawesome.api.restaurant_orders.load_multiple_draft_orders_for_editing",
+          method: "posawesome.posawesome.api.restaurant_orders.submit_multiple_orders_and_create_invoice",
           args: {
-            sales_order_names: e,
-            pos_profile_name: this.pos_profile?.name || null
+            order_names: e,
+            updated_order_data: {}
           }
         });
-        if (console.log("Backend API response:", a), console.log("Response message properties:", a.message ? Object.keys(a.message) : "No message"), a && a.message) {
-          console.log("Successfully received consolidated order data from backend"), this.eventBus.emit("change_invoice_type", "Order"), this.eventBus.emit("load_invoice", a.message), this.close_dialog();
-          const r = a.message.customer_name || a.message.customer || this.selected[0].customer_name || this.selected[0].customer || "customer";
-          this.eventBus.emit("show_message", {
-            title: __("✅ {0} draft orders consolidated for payment. IMPORTANT: Original orders remain as drafts. When you complete payment, a new invoice will be created while keeping original orders unchanged.", [e.length]),
+        if (console.log("Backend API response:", a), console.log("Response message properties:", a.message ? Object.keys(a.message) : "No message"), a && a.message)
+          console.log("Successfully created consolidated order:", a.message.name), console.log("Loading consolidated order into POS cart for review..."), this.eventBus.emit("change_invoice_type", "Order"), this.eventBus.emit("load_invoice", a.message), await this.refresh_orders(), this.close_dialog(), this.eventBus.emit("show_message", {
+            title: __("✅ Consolidated order {0} loaded into cart for review. You can add/remove items, then click PAY to submit and create invoice.", [a.message.name]),
             color: "success",
             timeout: 8e3
-            // Show longer message for important info
-          }), console.log(`Successfully loaded ${e.length} draft orders for editing`);
-        } else
+          }), console.log(`Successfully consolidated ${e.length} draft orders into ${a.message.name} and loaded into POS cart`);
+        else
           throw console.error("Backend API returned empty response"), new Error("No data returned from backend");
       } catch (a) {
-        console.error("Failed to load draft orders for editing", a), this.eventBus.emit("show_message", {
-          title: __("Error loading draft orders: {0}", [a.message || "Unknown error"]),
+        console.error("Failed to consolidate orders", a), this.eventBus.emit("show_message", {
+          title: __("Error consolidating orders: {0}", [a.message || "Unknown error"]),
           color: "error"
         });
       } finally {
@@ -68051,7 +68112,7 @@ function Cre(e, t, n, a, r, i) {
                     loading: r.converting
                   }, {
                     default: T(() => [
-                      ae(q(e.__("Add {0} Draft Orders to Cart", [r.selected.length])), 1)
+                      ae(q(e.__("Convert to Payment ({0} Orders)", [r.selected.length])), 1)
                     ]),
                     _: 1
                   }, 8, ["onClick", "loading"])) : ge("", !0),
@@ -68223,7 +68284,7 @@ function Cre(e, t, n, a, r, i) {
     _: 1
   });
 }
-const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-13d8dee6"]]), xre = {
+const Are = /* @__PURE__ */ nn(Gae, [["render", Cre], ["__scopeId", "data-v-207401dc"]]), xre = {
   mixins: [Oi],
   data: () => ({
     closingDialog: !1,
@@ -72109,7 +72170,7 @@ const poe = {
             } catch (n) {
               console.warn("Failed to cache tax inclusive setting", n);
             }
-            import("./index-CiwVmTXw.js").then((n) => {
+            import("./index-DA9K76jT.js").then((n) => {
               n && n.setTaxInclusiveSetting && n.setTaxInclusiveSetting(t);
             }).catch(() => {
             });

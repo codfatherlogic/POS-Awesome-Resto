@@ -379,7 +379,7 @@
 						@click="convert_multiple_to_payment"
 						:loading="converting"
 					>
-						{{ __("Add {0} Draft Orders to Cart", [selected.length]) }}
+						{{ __("Convert to Payment ({0} Orders)", [selected.length]) }}
 					</v-btn>
 					<v-btn
 						v-if="selected.length === 1 && canEdit(selected[0])"
@@ -1151,8 +1151,9 @@ export default {
 				draftOrderNames.push(order.name);
 			}
 			
-			// Validate that all orders are from the same customer
-			const firstCustomer = this.selected[0].customer;
+			// Validate that all orders are from the same customer and store customer info
+			const firstCustomer = this.selected[0]?.customer || "customer";
+			const firstCustomerName = this.selected[0]?.customer_name || this.selected[0]?.customer || "customer";
 			const sameCustomer = this.selected.every(order => order.customer === firstCustomer);
 			
 			if (!sameCustomer) {
@@ -1166,7 +1167,7 @@ export default {
 			this.converting = true;
 			
 			try {
-				console.log("Calling backend API with order names:", draftOrderNames);
+				console.log("Calling consolidation workflow with order names:", draftOrderNames);
 				console.log("Selected orders data for debugging:", JSON.stringify(this.selected.map(o => ({
 					name: o.name,
 					customer: o.customer,
@@ -1174,12 +1175,12 @@ export default {
 					docstatus: o.docstatus
 				})), null, 2));
 				
-				// Load draft orders for editing (without submitting them)
+				// Call the new consolidation workflow to create DRAFT consolidated order
 				const r = await frappe.call({
-					method: "posawesome.posawesome.api.restaurant_orders.load_multiple_draft_orders_for_editing",
+					method: "posawesome.posawesome.api.restaurant_orders.submit_multiple_orders_and_create_invoice",
 					args: {
-						sales_order_names: draftOrderNames,
-						pos_profile_name: this.pos_profile?.name || null,
+						order_names: draftOrderNames,
+						updated_order_data: {},
 					},
 				});
 				
@@ -1187,35 +1188,39 @@ export default {
 				console.log("Response message properties:", r.message ? Object.keys(r.message) : 'No message');
 				
 				if (r && r.message) {
-					console.log("Successfully received consolidated order data from backend");
+					console.log("Successfully created consolidated order:", r.message.name);
 					
-					// Switch to Order mode for editing (keep as draft)
+					// ✅ NEW: Load the consolidated DRAFT order into POS cart for review
+					console.log("Loading consolidated order into POS cart for review...");
+					
+					// Switch to Order mode for editing the consolidated draft
 					this.eventBus.emit("change_invoice_type", "Order");
 					
-					// Load the consolidated draft order into cart for editing
+					// Load the consolidated order into the POS cart
 					this.eventBus.emit("load_invoice", r.message);
+					
+					// Refresh the orders list to show updated statuses
+					await this.refresh_orders();
 					
 					// Close dialog
 					this.close_dialog();
 					
-					// Show success message with editing instructions
-					// Use customer_name from the response data, fallback to customer field, or use generic message
-					const customerName = r.message.customer_name || r.message.customer || this.selected[0].customer_name || this.selected[0].customer || "customer";
+					// Show success message about consolidation
 					this.eventBus.emit("show_message", {
-						title: __("✅ {0} draft orders consolidated for payment. IMPORTANT: Original orders remain as drafts. When you complete payment, a new invoice will be created while keeping original orders unchanged.", [draftOrderNames.length]),
+						title: __("✅ Consolidated order {0} loaded into cart for review. You can add/remove items, then click PAY to submit and create invoice.", [r.message.name]),
 						color: "success",
-						timeout: 8000,  // Show longer message for important info
+						timeout: 8000,
 					});
 					
-					console.log(`Successfully loaded ${draftOrderNames.length} draft orders for editing`);
+					console.log(`Successfully consolidated ${draftOrderNames.length} draft orders into ${r.message.name} and loaded into POS cart`);
 				} else {
 					console.error("Backend API returned empty response");
 					throw new Error("No data returned from backend");
 				}
 			} catch (error) {
-				console.error("Failed to load draft orders for editing", error);
+				console.error("Failed to consolidate orders", error);
 				this.eventBus.emit("show_message", {
-					title: __("Error loading draft orders: {0}", [error.message || "Unknown error"]),
+					title: __("Error consolidating orders: {0}", [error.message || "Unknown error"]),
 					color: "error",
 				});
 			} finally {

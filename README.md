@@ -1,5 +1,18 @@
 <div align="center">
-    <img src="https://frappecloud.com/files/pos.png" height="128">
+    <img src="https://frappecloud.com/fil37. **Restaurant Order Consolidation**: Advanced multi-order payment workflow allowing cashiers to select multiple restaurant orders, automatically consolidate them into a single draft order, review and modify items in the POS cart, and complete payment while properly closing source orders and maintaining audit trails
+
+### Recent Enhancements
+
+#### Restaurant Order Consolidation (v15.2024)
+- **Multi-Order Selection**: Select multiple draft restaurant orders from the Restaurant Orders dialog
+- **Automatic Consolidation**: System creates a consolidated draft Sales Order containing all items from selected orders
+- **POS Cart Integration**: Consolidated order automatically loads into POS cart for review and modification
+- **Item Review & Modification**: Cashiers can add, remove, or modify items before final payment
+- **Smart Payment Processing**: Submit consolidated order converts to Sales Invoice, closes source orders, and updates custom reference fields
+- **Table Management**: Automatic release of restaurant tables upon order consolidation
+- **Audit Trail**: Maintains complete traceability with consolidated invoice references and VAT mappings
+
+#### Enhanced POS Workflow (v15.2024)png" height="128">
     <h2>POS AWESOME</h2>
 </div>
 

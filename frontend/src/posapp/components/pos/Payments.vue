@@ -1147,6 +1147,11 @@ export default {
 		getSubmitButtonText() {
 			if (this.invoice_doc.is_multi_order_edit) {
 				return this.__("Submit {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]);
+			} else if (this.invoice_doc.doctype === "Sales Order" && 
+					   this.invoice_doc.docstatus === 0 && 
+					   this.invoice_doc.custom_consolidated_invoice_reference) {
+				const sourceOrderCount = this.invoice_doc.custom_consolidated_invoice_reference.split(',').length;
+				return this.__("Submit Consolidated Order ({0} Orders)", [sourceOrderCount]);
 			} else if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0) {
 				return this.__("Submit Order");
 			} else if (this.invoice_doc.doctype === "Sales Invoice") {
@@ -1158,6 +1163,11 @@ export default {
 		getSubmitPrintButtonText() {
 			if (this.invoice_doc.is_multi_order_edit) {
 				return this.__("Submit & Print {0} Orders", [this.invoice_doc.multi_order_count || "Multiple"]);
+			} else if (this.invoice_doc.doctype === "Sales Order" && 
+					   this.invoice_doc.docstatus === 0 && 
+					   this.invoice_doc.custom_consolidated_invoice_reference) {
+				const sourceOrderCount = this.invoice_doc.custom_consolidated_invoice_reference.split(',').length;
+				return this.__("Submit & Print Consolidated Order ({0} Orders)", [sourceOrderCount]);
 			} else if (this.invoice_doc.doctype === "Sales Order" && this.invoice_doc.docstatus === 0) {
 				return this.__("Submit & Print Order");
 			} else if (this.invoice_doc.doctype === "Sales Invoice") {
@@ -1264,6 +1274,95 @@ export default {
 					console.error("Error submitting multiple draft restaurant orders:", error);
 					this.eventBus.emit("show_message", {
 						title: __("Error submitting multiple orders: {0}", [error.message || "Unknown error"]),
+						color: "error",
+					});
+					this.loading = false;
+					return;
+				}
+			}
+			// CONSOLIDATED ORDER RESTAURANT WORKFLOW: Handle consolidated draft Sales Orders
+			else if (this.invoice_doc.doctype === "Sales Order" && 
+					 this.invoice_doc.docstatus === 0 && 
+					 this.invoice_doc.custom_consolidated_invoice_reference) {
+				
+				console.log("Submitting consolidated draft restaurant order:", this.invoice_doc.name);
+				console.log("Source orders:", this.invoice_doc.custom_consolidated_invoice_reference);
+				
+				try {
+					// CRITICAL: Preserve payment amounts before processing
+					const originalPayments = JSON.parse(JSON.stringify(this.invoice_doc.payments || []));
+					console.log("Preserving payment amounts for consolidated order:", originalPayments);
+					
+					// Step 1: Submit the consolidated draft Sales Order
+					const submitResult = await frappe.call({
+						method: "posawesome.posawesome.api.restaurant_orders.submit_restaurant_order",
+						args: {
+							order_data: this.invoice_doc,
+						},
+					});
+
+					if (submitResult.message) {
+						console.log("Successfully submitted consolidated Sales Order:", submitResult.message.name);
+						
+						// Step 2: Convert the submitted consolidated Sales Order to Sales Invoice
+						const invoiceResult = await frappe.call({
+							method: "posawesome.posawesome.api.restaurant_orders.convert_order_to_invoice",
+							args: {
+								sales_order_name: submitResult.message.name,
+								pos_profile_name: this.pos_profile.name,
+							},
+						});
+
+						if (invoiceResult.message) {
+							// Update the current document to the new Sales Invoice
+							this.invoice_doc = invoiceResult.message;
+							console.log("Successfully converted consolidated order to Sales Invoice:", this.invoice_doc.name);
+							
+							// CRITICAL: Restore payment amounts to the new invoice
+							if (originalPayments && originalPayments.length > 0) {
+								console.log("Restoring payment amounts to consolidated invoice...");
+								
+								originalPayments.forEach(originalPayment => {
+									const matchingPayment = this.invoice_doc.payments.find(payment => 
+										payment.mode_of_payment === originalPayment.mode_of_payment
+									);
+									
+									if (matchingPayment && originalPayment.amount > 0) {
+										matchingPayment.amount = originalPayment.amount;
+										matchingPayment.base_amount = originalPayment.base_amount || originalPayment.amount;
+										console.log(`Restored ${originalPayment.mode_of_payment}: ${originalPayment.amount}`);
+									}
+								});
+								
+								console.log("Payment amounts successfully restored to consolidated invoice");
+							}
+							
+							// Update the invoice type to reflect the new document type
+							this.invoiceType = "Invoice";
+							this.eventBus.emit("change_invoice_type", "Invoice");
+							
+							// Step 3: Finalize consolidation - close source orders and update references
+							console.log("Finalizing consolidated order submission...");
+							await frappe.call({
+								method: "posawesome.posawesome.api.restaurant_orders.finalize_consolidated_order_submission",
+								args: {
+									consolidated_order_name: submitResult.message.name,
+								},
+							});
+							
+							// Show success message
+							this.eventBus.emit("show_message", {
+								title: __("Consolidated order submitted successfully. Source orders have been closed. Proceed with payment."),
+								color: "success",
+							});
+							
+							console.log("Consolidated order workflow complete, continuing with payment submission for invoice:", this.invoice_doc.name);
+						}
+					}
+				} catch (error) {
+					console.error("Error submitting consolidated restaurant order:", error);
+					this.eventBus.emit("show_message", {
+						title: __("Error submitting consolidated order: {0}", [error.message || "Unknown error"]),
 						color: "error",
 					});
 					this.loading = false;
