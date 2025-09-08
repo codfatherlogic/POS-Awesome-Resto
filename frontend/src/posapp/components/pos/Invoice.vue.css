@@ -80,10 +80,45 @@
 	z-index: 1;
 }
 
-/* Dynamic padding for responsive layout */
+/* Dynamic padding for responsive layout - optimized for compact cart */
 .dynamic-padding {
-	/* Uniform spacing for better alignment */
-	padding: var(--dynamic-sm);
+	/* Reduced spacing for compact cart layout */
+	padding: var(--dynamic-xs);
+}
+
+/* Compact cart table styling */
+.v-data-table {
+	font-size: 0.875rem;
+}
+
+.v-data-table .v-data-table__td {
+	padding: 4px 8px !important;
+	height: auto !important;
+	min-height: 32px !important;
+}
+
+.v-data-table .v-data-table__th {
+	padding: 6px 8px !important;
+	height: auto !important;
+	font-size: 0.8rem !important;
+	font-weight: 600 !important;
+}
+
+/* Compact row spacing */
+.v-data-table .v-data-table-row {
+	height: auto !important;
+	min-height: 36px !important;
+}
+
+/* Reduce margins and padding in cart items */
+.items.px-3.py-2 {
+	padding: 4px 8px !important;
+}
+
+/* Compact customer section */
+.v-col.pb-0.pr-0 {
+	padding-bottom: 2px !important;
+	padding-right: 4px !important;
 }
 
 /* Responsive breakpoints */

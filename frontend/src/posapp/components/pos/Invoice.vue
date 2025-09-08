@@ -476,29 +476,25 @@ export default {
 		...offerMethods,
 		...invoiceItemMethods,
 		initializeItemsHeaders() {
-			// Define all available columns
+			// Define all available columns - optimized for compact cart view
 			this.available_columns = [
-				{ title: __("Name"), align: "start", sortable: true, key: "item_name", required: true },
-				{ title: __("QTY"), key: "qty", align: "start", required: true },
+				{ title: __("Item"), align: "start", sortable: true, key: "item_name", required: true, width: "40%" },
+				{ title: __("Qty"), key: "qty", align: "center", required: true, width: "15%" },
+				{ title: __("Rate"), key: "rate", align: "end", required: true, width: "20%" },
+				{ title: __("Total"), key: "amount", align: "end", required: true, width: "25%" },
 				{ title: __("UOM"), key: "uom", align: "start", required: false },
-				{ title: __("Rate"), key: "rate", align: "start", required: true },
 				{ title: __("Discount %"), key: "discount_value", align: "start", required: false },
 				{ title: __("Discount Amount"), key: "discount_amount", align: "start", required: false },
-				{ title: __("Amount"), key: "amount", align: "start", required: true },
 				{ title: __("Offer?"), key: "posa_is_offer", align: "center", required: false },
 			];
 
 			// Initialize selected columns if empty
 			if (!this.selected_columns || this.selected_columns.length === 0) {
-				// By default, select only required columns (Discount % and Discount Amount disabled by default)
+				// By default, select only essential columns for compact cart view
 				this.selected_columns = this.available_columns
 					.filter((col) => {
 						if (col.required) return true;
-						// Disable discount columns by default - users can enable them via settings
-						// if (col.key === "discount_value" && this.pos_profile.posa_display_discount_percentage)
-						// 	return true;
-						// if (col.key === "discount_amount" && this.pos_profile.posa_display_discount_amount)
-						// 	return true;
+						// Hide optional columns by default for compact view
 						return false;
 					})
 					.map((col) => col.key);
