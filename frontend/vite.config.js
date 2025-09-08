@@ -1,14 +1,12 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { resolve } from "path";
-import frappeVueStyle from "../frappe-vue-style";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 
 export default defineConfig({
   plugins: [
-    frappeVueStyle(),
     vue(),
     viteStaticCopy({
       targets: [
