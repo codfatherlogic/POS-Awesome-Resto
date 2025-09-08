@@ -27,21 +27,21 @@
 			<!-- Main Content Area -->
 			<div class="pos-main-content" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
 				<v-row dense class="ma-0 dynamic-main-row">
-					<v-col v-show="!payment && !showOffers && !coupons" xl="9" lg="9" md="8" sm="7" cols="12"
+					<v-col v-show="!payment && !showOffers && !coupons" xl="8" lg="8" md="7" sm="6" cols="12"
 						class="pos dynamic-col">
 						<ItemsSelector ref="itemsSelector"></ItemsSelector>
 					</v-col>
-					<v-col v-show="showOffers" xl="9" lg="9" md="8" sm="7" cols="12" class="pos dynamic-col">
+					<v-col v-show="showOffers" xl="8" lg="8" md="7" sm="6" cols="12" class="pos dynamic-col">
 						<PosOffers></PosOffers>
 					</v-col>
-					<v-col v-show="coupons" xl="9" lg="9" md="8" sm="7" cols="12" class="pos dynamic-col">
+					<v-col v-show="coupons" xl="8" lg="8" md="7" sm="6" cols="12" class="pos dynamic-col">
 						<PosCoupons></PosCoupons>
 					</v-col>
-					<v-col v-show="payment" xl="9" lg="9" md="8" sm="7" cols="12" class="pos dynamic-col">
+					<v-col v-show="payment" xl="8" lg="8" md="7" sm="6" cols="12" class="pos dynamic-col">
 						<Payments></Payments>
 					</v-col>
 
-					<v-col xl="3" lg="3" md="4" sm="5" cols="12" class="pos dynamic-col">
+					<v-col xl="4" lg="4" md="5" sm="6" cols="12" class="pos dynamic-col">
 						<Invoice></Invoice>
 					</v-col>
 				</v-row>

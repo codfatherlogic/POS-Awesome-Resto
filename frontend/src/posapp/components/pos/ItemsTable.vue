@@ -58,32 +58,71 @@
 				</div>
 			</template>
 
-			<!-- Quantity column -->
+			<!-- Quantity column with inline controls -->
 			<template v-slot:item.qty="{ item }">
-				<div class="amount-value" :class="{ 'negative-number': isNegative(item.qty) }">
-					{{ formatFloat(item.qty, hide_qty_decimals ? 0 : undefined) }}
+				<div class="qty-controls" style="display: flex; align-items: center; gap: 4px;">
+					<v-btn
+						:disabled="!!item.posa_is_replace"
+						size="x-small"
+						color="warning"
+						variant="text"
+						icon
+						@click.stop="subtractOne(item)"
+					>
+						<v-icon size="small" style="font-weight: bold;">mdi-minus</v-icon>
+					</v-btn>
+					<div class="amount-value" :class="{ 'negative-number': isNegative(item.qty) }" style="min-width: 40px; text-align: center;">
+						{{ formatFloat(item.qty, hide_qty_decimals ? 0 : undefined) }}
+					</div>
+					<v-btn
+						:disabled="
+							!!item.posa_is_replace ||
+							(item.is_stock_item &&
+							(!stock_settings.allow_negative_stock ||
+								pos_profile.posa_block_sale_beyond_available_qty) &&
+								item.max_qty !== undefined &&
+								item.qty >= item.max_qty)
+						"
+						size="x-small"
+						color="success"
+						variant="text"
+						icon
+						@click.stop="addOne(item)"
+					>
+						<v-icon size="small" style="font-weight: bold;">mdi-plus</v-icon>
+					</v-btn>
 				</div>
 			</template>
 
 			<!-- Rate column -->
 			<template v-slot:item.rate="{ item }">
-				<div class="currency-display">
-					<span class="currency-symbol">{{ currencySymbol(displayCurrency) }}</span>
-					<span class="amount-value" :class="{ 'negative-number': isNegative(item.rate) }">{{
-						formatCurrency(item.rate)
-					}}</span>
-				</div>
+				<span class="amount-value" :class="{ 'negative-number': isNegative(item.rate) }">{{
+					formatFloat(item.rate)
+				}}</span>
 			</template>
 
 			<!-- Amount column -->
 			<template v-slot:item.amount="{ item }">
-				<div class="currency-display">
-					<span class="currency-symbol">{{ currencySymbol(displayCurrency) }}</span>
-					<span
-						class="amount-value"
-						:class="{ 'negative-number': isNegative(item.qty * item.rate) }"
-						>{{ formatCurrency(item.qty * item.rate) }}</span
+				<span
+					class="amount-value"
+					:class="{ 'negative-number': isNegative(item.qty * item.rate) }"
+					>{{ formatFloat(item.qty * item.rate) }}</span
+				>
+			</template>
+
+			<!-- Actions column -->
+			<template v-slot:item.actions="{ item }">
+				<div style="display: flex; justify-content: flex-start; align-items: center;">
+					<v-btn
+						:disabled="!!item.posa_is_replace"
+						size="small"
+						color="error"
+						variant="text"
+						icon
+						@click.stop="removeItem(item)"
 					>
+						<v-icon size="small">mdi-trash-can-outline</v-icon>
+					</v-btn>
 				</div>
 			</template>
 
@@ -138,73 +177,6 @@
 			<template v-slot:expanded-row="{ item }">
 				<td :colspan="headers.length" class="ma-0 pa-0">
                                         <div class="expanded-content">
-						<!-- Enhanced Action Panel with better visual hierarchy -->
-						<div class="action-panel">
-							<div class="action-panel-header">
-								<v-icon size="small" class="action-panel-icon">mdi-cog</v-icon>
-								<span class="action-panel-title">{{ __("Quick Actions") }}</span>
-							</div>
-							<div class="action-panel-content">
-                                                                <div class="action-button-group">
-                                                                        <v-btn
-                                                                                :disabled="!!item.posa_is_replace"
-                                                                                size="large"
-                                                                                color="error"
-                                                                                variant="tonal"
-                                                                                class="item-action-btn delete-btn"
-                                                                                @click.stop="removeItem(item)"
-                                                                        >
-                                                                                <v-icon size="large">mdi-trash-can-outline</v-icon>
-                                                                                <span class="action-label">{{ __("Remove") }}</span>
-                                                                        </v-btn>
-                                                                        <v-btn
-                                                                                v-if="item.is_bundle"
-                                                                                :disabled="!!item.posa_is_replace"
-                                                                                size="large"
-                                                                                color="primary"
-                                                                                variant="tonal"
-                                                                                class="item-action-btn bundle-btn"
-                                                                                @click.stop="$emit('view-packed', item.bundle_id)"
-                                                                        >
-                                                                                <v-icon size="large">mdi-package-variant</v-icon>
-                                                                               <span class="action-label">{{ __("Items Included") }}</span>
-                                                                       </v-btn>
-                                                               </div>
-
-								<div class="action-button-group">
-									<v-btn
-										:disabled="!!item.posa_is_replace"
-										size="large"
-										color="warning"
-										variant="tonal"
-										class="item-action-btn minus-btn"
-										@click.stop="subtractOne(item)"
-									>
-										<v-icon size="large">mdi-minus-circle-outline</v-icon>
-										<span class="action-label">{{ __("Decrease") }}</span>
-									</v-btn>
-									<v-btn
-										:disabled="
-											!!item.posa_is_replace ||
-											(item.is_stock_item &&
-											(!stock_settings.allow_negative_stock ||
-												pos_profile.posa_block_sale_beyond_available_qty) &&
-												item.max_qty !== undefined &&
-												item.qty >= item.max_qty)
-										"
-										size="large"
-										color="success"
-										variant="tonal"
-										class="item-action-btn plus-btn"
-										@click.stop="addOne(item)"
-									>
-										<v-icon size="large">mdi-plus-circle-outline</v-icon>
-										<span class="action-label">{{ __("Increase") }}</span>
-									</v-btn>
-								</div>
-							</div>
-						</div>
-
 						<!-- Enhanced Item Details Form with better organization -->
 						<div class="item-details-form">
 							<!-- Basic Information Section -->

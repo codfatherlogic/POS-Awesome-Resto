@@ -242,73 +242,10 @@
 									<div class="card-item-content">
 										<div class="card-item-header">
 											<h4 class="card-item-name">{{ item.item_name }}</h4>
-											<span class="card-item-code">{{ item.item_code }}</span>
-										</div>
-										<div class="card-item-details">
-											<div class="card-item-price">
-												<div class="primary-price">
-													<span class="currency-symbol">
-														{{
-															currencySymbol(
-																item.original_currency ||
-																	pos_profile.currency,
-															)
-														}}
-													</span>
-													<span class="price-amount">
-														{{
-															format_currency(
-																item.base_price_list_rate || item.rate,
-																item.original_currency ||
-																	pos_profile.currency,
-																ratePrecision(
-																	item.base_price_list_rate || item.rate,
-																),
-															)
-														}}
-													</span>
-												</div>
-												<div
-													v-if="
-														pos_profile.posa_allow_multi_currency &&
-														selected_currency !== pos_profile.currency
-													"
-													class="secondary-price"
-												>
-													<span class="currency-symbol">{{
-														currencySymbol(selected_currency)
-													}}</span>
-													<span class="price-amount">
-														{{
-															format_currency(
-																item.rate,
-																selected_currency,
-																ratePrecision(item.rate),
-															)
-														}}
-													</span>
-												</div>
-											</div>
-											<div v-if="show_available_qty || show_uom" class="card-item-stock">
-												<v-icon v-if="show_available_qty" size="small" class="stock-icon"
-													>mdi-package-variant</v-icon
-												>
-												<span
-													v-if="show_available_qty"
-													class="stock-amount"
-													:class="{
-														'negative-number': isNegative(item.actual_qty),
-													}"
-												>
-													{{
-														format_number(
-															item.actual_qty,
-															hide_qty_decimals ? 0 : 4,
-														) || 0
-													}}
-												</span>
-												<span v-if="show_uom" class="stock-uom">{{ item.stock_uom || "" }}</span>
-											</div>
+											<span class="card-item-rate">
+												{{ currencySymbol(item.original_currency || pos_profile.currency) }}
+												{{ format_currency(item.base_price_list_rate || item.rate, item.original_currency || pos_profile.currency, ratePrecision(item.base_price_list_rate || item.rate)) }}
+											</span>
 										</div>
 									</div>
 								</div>
@@ -3203,8 +3140,9 @@ export default {
 	display: flex;
 	flex-direction: column;
 	height: auto;
-	max-width: 180px;
+	max-width: 140px;
 	box-sizing: border-box;
+	border: none !important;
 }
 
 .dynamic-item-card .v-img {
@@ -3290,12 +3228,12 @@ export default {
 	-moz-osx-font-smoothing: grayscale;
 }
 
-/* Enhanced Card View Grid Layout - 3 items per row */
+/* Enhanced Card View Grid Layout - 6 items per row */
 .items-card-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 16px;
-	padding: 16px;
+	grid-template-columns: repeat(6, 1fr);
+	gap: 12px;
+	padding: 12px;
 	height: calc(100% - 80px);
 	overflow-y: auto;
 	scrollbar-width: thin;
@@ -3318,7 +3256,6 @@ export default {
 .card-item-card {
 	background-color: var(--surface-secondary, #ffffff);
 	border-radius: 12px;
-	border: 1px solid rgba(0, 0, 0, 0.08);
 	overflow: hidden;
 	transition: all 0.3s ease;
 	cursor: pointer;
@@ -3331,12 +3268,11 @@ export default {
 .card-item-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-	border-color: var(--primary-color, #1976d2);
 }
 
 .card-item-image-container {
 	position: relative;
-	height: 120px;
+	height: 80px;
 	overflow: hidden;
 	background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
 }
@@ -3392,11 +3328,11 @@ export default {
 		sans-serif;
 }
 
-.card-item-code {
-	font-size: 0.75rem;
-	color: var(--text-secondary, #6c757d);
-	font-weight: 500;
-	background: rgba(0, 0, 0, 0.04);
+.card-item-rate {
+	font-size: 0.8rem;
+	color: var(--success-color, #28a745);
+	font-weight: 600;
+	background: rgba(40, 167, 69, 0.1);
 	padding: 2px 6px;
 	border-radius: 4px;
 	/* Enhanced Arabic font support */
@@ -3405,101 +3341,16 @@ export default {
 		sans-serif;
 }
 
-.card-item-details {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-	flex: 1;
-}
-
-.card-item-price {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.primary-price {
-	display: flex;
-	align-items: center;
-	gap: 2px;
-	font-weight: 600;
-	color: var(--primary-color, #1976d2);
-}
-
-.secondary-price {
-	display: flex;
-	align-items: center;
-	gap: 2px;
-	font-weight: 500;
-	color: #4caf50;
-	font-size: 0.875rem;
-}
-
-.currency-symbol {
-	opacity: 0.8;
-	font-size: 0.85em;
-	font-family:
-		"SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans Arabic", "Tahoma",
-		sans-serif;
-}
-
-.price-amount {
-	font-family:
-		"SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans Arabic", "Tahoma",
-		sans-serif;
-	font-variant-numeric: lining-nums tabular-nums;
-	font-feature-settings:
-		"tnum" 1,
-		"lnum" 1,
-		"kern" 1;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-.card-item-stock {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 6px 8px;
-	background: rgba(0, 0, 0, 0.02);
-	border-radius: 6px;
-	margin-top: auto;
-}
-
-.stock-icon {
-	color: var(--text-secondary, #6c757d);
-}
-
-.stock-amount {
-	font-weight: 600;
-	font-family:
-		"SF Pro Display", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans Arabic", "Tahoma",
-		sans-serif;
-	font-variant-numeric: lining-nums tabular-nums;
-	font-feature-settings:
-		"tnum" 1,
-		"lnum" 1,
-		"kern" 1;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
-}
-
-.stock-uom {
-	font-size: 0.75rem;
-	color: var(--text-secondary, #6c757d);
-	font-weight: 500;
-}
-
 /* Dark theme support for card view */
 :deep([data-theme="dark"]) .card-item-card,
 :deep(.v-theme--dark) .card-item-card {
 	background-color: var(--surface-secondary, #2c2c2c);
-	border-color: rgba(255, 255, 255, 0.12);
+	border: none;
 }
 
 :deep([data-theme="dark"]) .card-item-card:hover,
 :deep(.v-theme--dark) .card-item-card:hover {
-	border-color: var(--primary-color, #90caf9);
+	border: none;
 }
 
 :deep([data-theme="dark"]) .card-item-image-container,
@@ -3517,10 +3368,10 @@ export default {
 	color: var(--text-primary, #ffffff);
 }
 
-:deep([data-theme="dark"]) .card-item-code,
-:deep(.v-theme--dark) .card-item-code {
-	background: rgba(255, 255, 255, 0.08);
-	color: var(--text-secondary, #b0b0b0);
+:deep([data-theme="dark"]) .card-item-rate,
+:deep(.v-theme--dark) .card-item-rate {
+	background: rgba(40, 167, 69, 0.15);
+	color: var(--success-color, #4caf50);
 }
 
 :deep([data-theme="dark"]) .card-item-stock,
@@ -3701,7 +3552,7 @@ export default {
 /* Responsive breakpoints */
 @media (max-width: 1200px) {
 	.items-card-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		gap: 12px;
 		padding: 12px;
 	}
@@ -3723,13 +3574,13 @@ export default {
 	}
 
 	.items-card-grid {
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(3, 1fr);
 		gap: 10px;
 		padding: 10px;
 	}
 
 	.card-item-image-container {
-		height: 100px;
+		height: 80px;
 	}
 
 	.card-item-content {
@@ -3740,7 +3591,7 @@ export default {
 		font-size: 0.85rem;
 	}
 
-	.card-item-code {
+	.card-item-rate {
 		font-size: 0.7rem;
 	}
 }
@@ -3753,5 +3604,14 @@ export default {
 	.cards {
 		padding: var(--dynamic-xs) !important;
 	}
+}
+
+/* Remove all borders from cards in items view */
+:deep(.v-card) {
+	border: none !important;
+}
+
+:deep(.v-card):hover {
+	border: none !important;
 }
 </style>

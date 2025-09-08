@@ -282,12 +282,7 @@
 										{{ formatFloat(item.qty) }}
 									</template>
 									<template v-slot:item.rate="{ item }">
-										<div class="currency-display">
-											<span class="currency-symbol">{{
-												currencySymbol(displayCurrency)
-											}}</span>
-											<span class="amount-value">{{ formatCurrency(item.rate) }}</span>
-										</div>
+										<span class="amount-value">{{ formatFloat(item.rate) }}</span>
 									</template>
 									<template v-slot:item.warehouse="{ item }">
 										<v-text-field
@@ -478,10 +473,11 @@ export default {
 		initializeItemsHeaders() {
 			// Define all available columns - optimized for compact cart view
 			this.available_columns = [
-				{ title: __("Item"), align: "start", sortable: true, key: "item_name", required: true, width: "40%" },
+				{ title: __("Item"), align: "start", sortable: true, key: "item_name", required: true, width: "50%" },
 				{ title: __("Qty"), key: "qty", align: "center", required: true, width: "15%" },
-				{ title: __("Rate"), key: "rate", align: "end", required: true, width: "20%" },
-				{ title: __("Total"), key: "amount", align: "end", required: true, width: "25%" },
+				{ title: __("Rate"), key: "rate", align: "end", required: false, width: "15%" },
+				{ title: __("Total"), key: "amount", align: "end", required: true, width: "15%" },
+				{ title: "", key: "actions", align: "start", required: true, width: "3%", sortable: false },
 				{ title: __("UOM"), key: "uom", align: "start", required: false },
 				{ title: __("Discount %"), key: "discount_value", align: "start", required: false },
 				{ title: __("Discount Amount"), key: "discount_amount", align: "start", required: false },
