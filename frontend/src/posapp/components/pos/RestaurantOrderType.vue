@@ -1,13 +1,13 @@
 <template>
-	<v-row align="center" class="items px-3 py-2 mt-0" v-if="pos_profile.posa_enable_restaurant_mode">
+	<v-row align="center" class="items px-3 py-2 mt-0" v-if="pos_profile.posa_enable_restaurant_mode && isStandardMode">
 		<!-- Order Type Selection -->
 		<v-col cols="12" sm="6" class="pb-0 mb-0 pr-2 pt-0">
 			<v-select
 				density="compact"
 				variant="solo"
 				color="primary"
-				:label="frappe._('Order Type') + ' *'"
-				:placeholder="frappe._('Select Order Type (Required)')"
+				:label="orderTypeLabel"
+				:placeholder="orderTypePlaceholder"
 				v-model="internal_selected_order_type"
 				:items="order_types"
 				item-title="order_type_name"
@@ -15,7 +15,7 @@
 				return-object
 				:bg-color="isDarkTheme ? '#1E1E1E' : 'white'"
 				class="dark-field sleek-field"
-				:class="{ 'error-field': !internal_selected_order_type && showValidation }"
+				:class="{ 'error-field': !internal_selected_order_type && showValidation && isOrderTypeRequired }"
 				:no-data-text="__('No order types found')"
 				hide-details
 				:disabled="readonly"
@@ -100,8 +100,8 @@
 			</v-alert>
 		</v-col>
 		
-		<!-- Mandatory Selection Notice -->
-		<v-col v-if="!internal_selected_order_type" cols="12" class="pt-1 pb-0">
+		<!-- Mandatory Selection Notice (only in standard mode) -->
+		<v-col v-if="!internal_selected_order_type && isStandardMode" cols="12" class="pt-1 pb-0">
 			<v-alert
 				type="info"
 				density="compact"
@@ -110,6 +110,19 @@
 			>
 				<v-icon start>mdi-information</v-icon>
 				{{ __("Order Type selection is mandatory before adding items to cart") }}
+			</v-alert>
+		</v-col>
+		
+		<!-- Direct Order Mode Notice -->
+		<v-col v-if="isDirectMode" cols="12" class="pt-1 pb-0">
+			<v-alert
+				:type="isDirectOrderWithKOT ? 'success' : 'info'"
+				density="compact"
+				class="mb-0"
+				variant="tonal"
+			>
+				<v-icon start>{{ isDirectOrderWithKOT ? 'mdi-printer' : 'mdi-lightning-bolt' }}</v-icon>
+				{{ directModeMessage }}
 			</v-alert>
 		</v-col>
 	</v-row>
@@ -137,6 +150,43 @@ export default {
 		isDarkTheme() {
 			return this.$theme?.current === "dark";
 		},
+		// Check if we're in standard restaurant mode (not direct order modes)
+		isStandardMode() {
+			return !this.pos_profile.posa_order_mode || this.pos_profile.posa_order_mode === 'Standard';
+		},
+		// Check if we're in any direct order mode
+		isDirectMode() {
+			return this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+		},
+		// Check if we're in direct order with KOT mode
+		isDirectOrderWithKOT() {
+			return this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+		},
+		// Order type is only required in standard mode
+		isOrderTypeRequired() {
+			return this.isStandardMode;
+		},
+		// Dynamic label for order type field
+		orderTypeLabel() {
+			return this.isOrderTypeRequired 
+				? this.frappe._('Order Type') + ' *'
+				: this.frappe._('Order Type');
+		},
+		// Dynamic placeholder for order type field  
+		orderTypePlaceholder() {
+			return this.isOrderTypeRequired
+				? this.frappe._('Select Order Type (Required)')
+				: this.frappe._('Select Order Type (Optional)');
+		},
+		// Message for direct order modes
+		directModeMessage() {
+			if (this.isDirectOrderWithKOT) {
+				return this.__("Direct Order + KOT Mode: Orders will be billed immediately with KOT print");
+			} else if (this.isDirectMode) {
+				return this.__("Direct Order Mode: Orders will be billed immediately without order creation");
+			}
+			return "";
+		},
 		showTableSelection() {
 			return (
 				this.internal_selected_order_type &&
@@ -149,7 +199,7 @@ export default {
 			return this.showValidation && this.validationMessage;
 		},
 		validationMessage() {
-			if (!this.internal_selected_order_type) {
+			if (this.isOrderTypeRequired && !this.internal_selected_order_type) {
 				return __("⚠️ Order Type is mandatory - Please select before adding items");
 			}
 			if (this.showTableSelection && !this.internal_selected_table) {

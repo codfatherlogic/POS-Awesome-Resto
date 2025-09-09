@@ -38,8 +38,11 @@ export default {
 		
 		// Validate restaurant requirements before adding items
 		if (this.pos_profile.posa_enable_restaurant_mode) {
-			// Check if order type is selected (mandatory)
-			if (!this.selected_order_type) {
+			// Check if we're in direct order mode (Direct Order or Direct Order + KOT)
+			const isDirectOrderMode = this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+			
+			// In standard mode, order type is mandatory. In direct modes, it's optional
+			if (!isDirectOrderMode && !this.selected_order_type) {
 				this.eventBus.emit("show_message", {
 					title: __("Please select an Order Type before adding items"),
 					color: "error",
@@ -47,8 +50,8 @@ export default {
 				return false;
 			}
 			
-			// Check if table is selected for Dine In orders
-			if (this.selected_order_type.requires_table && !this.selected_table) {
+			// Check if table is selected for Dine In orders (only if order type is selected and requires table)
+			if (this.selected_order_type && this.selected_order_type.requires_table && !this.selected_table) {
 				this.eventBus.emit("show_message", {
 					title: __("Please select a table for {0} orders", [this.selected_order_type.order_type_name]),
 					color: "error",
@@ -313,8 +316,11 @@ export default {
 				console.log("Processing Sales Invoice for payment, skipping restaurant order validation");
 				// Allow normal invoice processing for payment
 			} else {
-				// Apply restaurant order validation for Sales Orders
-				if (!this.selected_order_type) {
+				// Check if we're in direct order mode
+				const isDirectOrderMode = this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+				
+				// Apply restaurant order validation for Sales Orders (but skip for direct order modes)
+				if (!isDirectOrderMode && !this.selected_order_type) {
 					this.eventBus.emit("show_message", {
 						title: __("Please select an Order Type"),
 						color: "error",
@@ -322,7 +328,7 @@ export default {
 					return false;
 				}
 				
-				if (this.selected_order_type.requires_table && !this.selected_table) {
+				if (this.selected_order_type && this.selected_order_type.requires_table && !this.selected_table) {
 					this.eventBus.emit("show_message", {
 						title: __("Please select a table for {0} orders", [this.selected_order_type.order_type_name]),
 						color: "error",
@@ -1426,6 +1432,7 @@ export default {
 				customer: this.customer,
 				invoice_doc_name: this.invoice_doc ? this.invoice_doc.name : null,
 				invoice_doc_doctype: this.invoice_doc ? this.invoice_doc.doctype : null,
+				order_mode: this.pos_profile.posa_order_mode
 			});
 
 			if (!this.customer) {
@@ -1453,6 +1460,15 @@ export default {
 			if (!isValid) {
 				console.log("Main validation failed");
 				return;
+			}
+
+			// Check if we're in direct order mode (Direct Order or Direct Order + KOT)
+			const isDirectOrderMode = this.pos_profile.posa_enable_restaurant_mode && 
+									(this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT');
+			
+			if (isDirectOrderMode) {
+				console.log("Processing direct order mode:", this.pos_profile.posa_order_mode);
+				return await this.handle_direct_order_payment();
 			}
 
 			let invoice_doc;
@@ -1707,6 +1723,75 @@ export default {
 			console.error("Error in show_payment:", error);
 			this.eventBus.emit("show_message", {
 				title: __("Error processing payment"),
+				color: "error",
+				message: error.message,
+			});
+		}
+	},
+
+	// Handle direct order payment flow - bypasses order creation and goes straight to invoice
+	async handle_direct_order_payment() {
+		try {
+			console.log("Processing direct order payment");
+			
+			// Call the direct order API with proper arguments
+			const result = await frappe.call({
+				method: "posawesome.posawesome.api.direct_orders.create_direct_invoice",
+				args: {
+					customer: this.customer,
+					items: this.items.map(item => ({
+						item_code: item.item_code,
+						qty: item.qty,
+						rate: item.rate,
+						amount: item.amount,
+						description: item.description,
+						warehouse: item.warehouse || this.pos_profile.warehouse,
+						uom: item.uom,
+						stock_uom: item.stock_uom,
+						conversion_factor: item.conversion_factor || 1
+					})),
+					pos_profile: this.pos_profile.name,
+					company: this.pos_profile.company,
+					currency: this.selected_currency || this.pos_profile.currency,
+					conversion_rate: this.conversion_rate || 1,
+					plc_conversion_rate: this.exchange_rate || 1,
+					taxes_and_charges: this.pos_profile.taxes_and_charges,
+					// Include KOT flag for Direct Order + KOT mode
+					print_kot: this.pos_profile.posa_order_mode === 'Direct Order + KOT'
+				}
+			});
+
+			if (result.message && result.message.invoice) {
+				const invoice_doc = result.message.invoice;
+				console.log("Direct order invoice created:", invoice_doc.name);
+
+				// If KOT was requested and generated, show success message
+				if (result.message.kot_printed) {
+					this.eventBus.emit("show_message", {
+						title: __("KOT printed successfully"),
+						color: "success",
+					});
+				}
+
+				// Update the invoice doc with proper formatting for payment
+				invoice_doc.currency = this.selected_currency || this.pos_profile.currency;
+				invoice_doc.conversion_rate = this.conversion_rate || 1;
+				invoice_doc.plc_conversion_rate = this.exchange_rate || 1;
+				invoice_doc.is_pos = 1;
+				invoice_doc.payments = this.get_payments();
+
+				console.log("Showing payment dialog for direct order");
+				this.eventBus.emit("show_payment", "true");
+				this.eventBus.emit("send_invoice_doc_payment", invoice_doc);
+
+			} else {
+				throw new Error("Failed to create direct order invoice");
+			}
+
+		} catch (error) {
+			console.error("Error in direct order payment:", error);
+			this.eventBus.emit("show_message", {
+				title: __("Error processing direct order"),
 				color: "error",
 				message: error.message,
 			});

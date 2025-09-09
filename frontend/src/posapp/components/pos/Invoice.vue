@@ -1280,9 +1280,16 @@ export default {
 		},
 
 		handle_save_and_clear() {
-			// Route to correct method based on context
+			// Route to correct method based on context and order mode
 			if (this.pos_profile.posa_enable_restaurant_mode) {
-				if (this.restaurant_add_items_context && this.restaurant_add_items_context.is_updating_order) {
+				const isDirectOrderMode = this.pos_profile.posa_order_mode === 'Direct Order' || 
+										 this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+				
+				if (isDirectOrderMode) {
+					// In direct order modes, proceed directly to payment
+					console.log("Direct order mode detected - proceeding to payment");
+					this.show_payment();
+				} else if (this.restaurant_add_items_context && this.restaurant_add_items_context.is_updating_order) {
 					console.log("Routing to update_existing_order for order update");
 					this.update_existing_order();
 				} else {
@@ -1462,7 +1469,12 @@ export default {
 				return true;
 			}
 			
-			if (!this.selected_order_type) {
+			// In direct order modes, order type is optional
+			const isDirectOrderMode = this.pos_profile.posa_order_mode === 'Direct Order' || 
+									 this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+			
+			// Only require order type in standard mode
+			if (!isDirectOrderMode && !this.selected_order_type) {
 				this.eventBus.emit("show_message", {
 					title: __("Please select an Order Type before proceeding"),
 					color: "error",
@@ -1470,7 +1482,8 @@ export default {
 				return false;
 			}
 			
-			if (this.selected_order_type.requires_table && !this.selected_table) {
+			// Table validation (if order type is selected and requires table)
+			if (this.selected_order_type && this.selected_order_type.requires_table && !this.selected_table) {
 				this.eventBus.emit("show_message", {
 					title: __("Please select a table for {0} orders", [this.selected_order_type.order_type_name]),
 					color: "error",

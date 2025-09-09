@@ -24,6 +24,16 @@ def create_restaurant_custom_fields():
             "description": "Enable restaurant ordering features (Take Away, Dine In, Table Management)",
             "default": "0",
             "insert_after": "posa_restaurant_section"
+        },
+        {
+            "fieldname": "posa_order_mode",
+            "fieldtype": "Select",
+            "label": "Order Mode",
+            "options": "\nStandard\nDirect Order\nDirect Order + KOT",
+            "default": "Standard",
+            "description": "Standard: Full restaurant mode with order creation | Direct Order: Skip order creation, bill directly | Direct Order + KOT: Direct billing with KOT print",
+            "depends_on": "eval:doc.posa_enable_restaurant_mode",
+            "insert_after": "posa_enable_restaurant_mode"
         }
     ]
     

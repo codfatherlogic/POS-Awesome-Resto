@@ -3,7 +3,7 @@
 		:class="['cards mb-0 mt-3 py-2 px-3 rounded-lg resizable', isDarkTheme ? '' : 'bg-grey-lighten-4']"
 		:style="(isDarkTheme ? 'background-color:#1E1E1E;' : '') + 'resize: vertical; overflow: auto;'"
 	>
-		<!-- First Row: Total, Make Order, Show Orders -->
+		<!-- First Row: Total, Make Order/Pay, Show Orders -->
 		<v-row dense class="mb-1">
 			<v-col cols="4">
 				<v-text-field
@@ -17,20 +17,50 @@
 					class="summary-field"
 				/>
 			</v-col>
-			<v-col cols="4">
+			<!-- In Direct Order modes, show PAY button instead of Make Order -->
+			<v-col cols="4" v-if="isDirectOrderMode">
+				<v-btn
+					block
+					color="success"
+					theme="dark"
+					prepend-icon="mdi-cash-multiple"
+					@click="handleShowPayment"
+					class="summary-btn pay-btn"
+					:loading="paymentLoading"
+				>
+					{{ __("PAY") }}
+				</v-btn>
+			</v-col>
+			<!-- Standard restaurant mode - Make Order button -->
+			<v-col cols="4" v-else-if="isStandardRestaurantMode">
 				<v-btn
 					block
 					color="accent"
 					theme="dark"
-					:prepend-icon="pos_profile.posa_enable_restaurant_mode ? 'mdi-receipt' : 'mdi-content-save'"
+					prepend-icon="mdi-receipt"
 					@click="handleSaveAndClear"
 					class="summary-btn"
 					:loading="saveLoading"
 				>
-					{{ pos_profile.posa_enable_restaurant_mode ? (hasExistingOrder ? __("Update Order") : __("Make Order")) : __("Save & Clear") }}
+					{{ hasExistingOrder ? __("Update Order") : __("Make Order") }}
 				</v-btn>
 			</v-col>
-			<v-col cols="4" v-if="pos_profile.posa_enable_restaurant_mode">
+			<!-- Regular POS mode - Save & Clear button -->
+			<v-col cols="4" v-else>
+				<v-btn
+					block
+					color="accent"
+					theme="dark"
+					prepend-icon="mdi-content-save"
+					@click="handleSaveAndClear"
+					class="summary-btn"
+					:loading="saveLoading"
+				>
+					{{ __("Save & Clear") }}
+				</v-btn>
+			</v-col>
+			<!-- Show Orders button (only in standard restaurant mode) -->
+			<v-col cols="4" v-if="isStandardRestaurantMode">
 				<v-btn
 					block
 					color="info"
@@ -43,7 +73,8 @@
 					{{ __("Show Orders") }}
 				</v-btn>
 			</v-col>
-			<v-col cols="4" v-else-if="pos_profile.custom_allow_select_sales_order == 1">
+			<!-- Select Sales Order button (for non-restaurant mode with custom flag) -->
+			<v-col cols="4" v-else-if="!pos_profile.posa_enable_restaurant_mode && pos_profile.custom_allow_select_sales_order == 1">
 				<v-btn
 					block
 					color="info"
@@ -56,9 +87,13 @@
 					{{ __("Select S.O") }}
 				</v-btn>
 			</v-col>
+			<!-- Spacer for direct order modes to maintain layout -->
+			<v-col cols="4" v-else-if="isDirectOrderMode">
+				<!-- Empty spacer column -->
+			</v-col>
 		</v-row>
 
-		<!-- Second Row: Cancel Sale, Sales Return, PAY -->
+		<!-- Second Row: Cancel Sale, Sales Return, PAY (only in standard modes) -->
 		<v-row dense>
 			<v-col cols="4">
 				<v-btn
@@ -99,7 +134,8 @@
 					{{ __("Print Draft") }}
 				</v-btn>
 			</v-col>
-			<v-col cols="4">
+			<!-- PAY button (only shown in standard modes, hidden in direct order modes since PAY is in first row) -->
+			<v-col cols="4" v-if="!isDirectOrderMode">
 				<v-btn
 					block
 					color="success"
@@ -165,6 +201,31 @@ export default {
 	computed: {
 		isDarkTheme() {
 			return this.$theme?.current === "dark";
+		},
+		// Check if we're in standard restaurant mode (not direct order modes)
+		isStandardRestaurantMode() {
+			return this.pos_profile.posa_enable_restaurant_mode && 
+				   (!this.pos_profile.posa_order_mode || this.pos_profile.posa_order_mode === 'Standard');
+		},
+		// Check if we're in any direct order mode
+		isDirectOrderMode() {
+			return this.pos_profile.posa_enable_restaurant_mode && 
+				   (this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT');
+		},
+		// Check if we're in standard restaurant mode (not direct order modes)
+		isStandardRestaurantMode() {
+			return this.pos_profile.posa_enable_restaurant_mode && 
+				   (!this.pos_profile.posa_order_mode || this.pos_profile.posa_order_mode === 'Standard');
+		},
+		// Check if we're in any direct order mode
+		isDirectOrderMode() {
+			return this.pos_profile.posa_enable_restaurant_mode && 
+				   (this.pos_profile.posa_order_mode === 'Direct Order' || this.pos_profile.posa_order_mode === 'Direct Order + KOT');
+		},
+		// Check if we're in direct order with KOT mode  
+		isDirectOrderWithKOT() {
+			return this.pos_profile.posa_enable_restaurant_mode && 
+				   this.pos_profile.posa_order_mode === 'Direct Order + KOT';
 		},
 		hide_qty_decimals() {
 			try {
