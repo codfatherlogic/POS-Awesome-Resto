@@ -663,6 +663,20 @@
 						</v-tooltip>
 					</v-btn>
 				</v-col>
+				<!-- KOT Print Button for Direct Order + KOT mode -->
+				<v-col v-if="showKOTPrintButton" cols="12" class="mt-2">
+					<v-btn
+						block
+						size="large"
+						color="orange"
+						theme="dark"
+						@click="print_kot_for_invoice"
+						:loading="loading"
+						prepend-icon="mdi-printer"
+					>
+						{{ __("Print KOT") }}
+					</v-btn>
+				</v-col>
 				<v-col cols="12">
 					<v-btn
 						block
@@ -947,6 +961,14 @@ export default {
 			return this.diff_payment > 0
 				? `To Be Paid (${this.displayCurrency})`
 				: `Change (${this.displayCurrency})`;
+		},
+		// Should KOT print button be shown?
+		showKOTPrintButton() {
+			return (
+				this.pos_profile.posa_order_mode === "Direct Order + KOT" &&
+				this.invoice_doc.docstatus === 1 &&
+				this.invoice_doc.name
+			);
 		},
 		// Display formatted total payments
 		total_payments_display() {
@@ -1726,7 +1748,35 @@ export default {
 						return;
 					}
 					if (print) {
-						vm.load_print_page();
+						// Handle seamless dual-printing for Direct Order + KOT mode
+						if (vm.pos_profile.posa_order_mode === "Direct Order + KOT") {
+							// Use the response data which contains the submitted invoice
+							const submittedInvoice = r.message;
+							console.log("Using submitted invoice from response for dual print:", {
+								response_name: submittedInvoice?.name,
+								response_doctype: submittedInvoice?.doctype,
+								current_invoice_name: vm.invoice_doc?.name,
+								response_exists: !!submittedInvoice
+							});
+							
+							// Use the submitted invoice from response for dual printing
+							if (submittedInvoice && submittedInvoice.name) {
+								console.log("Starting dual print for submitted invoice:", submittedInvoice.name);
+								vm.seamless_dual_print(submittedInvoice);
+							} else {
+								console.error("Submitted invoice not available in response for dual printing", {
+									response: r,
+									message: r.message,
+									vm_invoice_doc: vm.invoice_doc
+								});
+								vm.eventBus.emit("show_message", {
+									title: __("Error: Submitted invoice not available for printing"),
+									color: "error",
+								});
+							}
+						} else {
+							vm.load_print_page();
+						}
 					}
 					vm.customer_credit_dict = [];
 					vm.redeem_customer_credit = false;
@@ -1854,6 +1904,207 @@ export default {
 			win.document.close();
 			win.focus();
 			win.print();
+		},
+		// Print KOT for Direct Order + KOT mode
+		async print_kot_for_invoice() {
+			if (!this.invoice_doc || !this.invoice_doc.name) {
+				this.eventBus.emit("show_message", {
+					title: __("No invoice to print KOT for"),
+					color: "error",
+				});
+				return;
+			}
+
+			this.loading = true;
+			try {
+				console.log("Printing KOT for invoice:", this.invoice_doc.name);
+				
+				// Generate KOT HTML for the latest invoice (no parameters needed)
+				frappe.call({
+					method: "posawesome.posawesome.api.direct_orders.generate_kot_html_for_latest_invoice",
+					callback: (result) => {
+						if (result.message && result.message.html) {
+							// Open and print the KOT
+							const win = window.open("", "_blank");
+							win.document.write(result.message.html);
+							win.document.close();
+							win.focus();
+							win.print();
+							
+							this.eventBus.emit("show_message", {
+								title: __("KOT printed successfully"),
+								color: "success",
+							});
+						} else {
+							this.eventBus.emit("show_message", {
+								title: __("Failed to generate KOT HTML"),
+								color: "error",
+							});
+						}
+						this.loading = false;
+					},
+					error: (error) => {
+						console.error("Error printing KOT:", error);
+						this.eventBus.emit("show_message", {
+							title: __("Error printing KOT: {0}", [error.message || "Unknown error"]),
+							color: "error",
+						});
+						this.loading = false;
+					}
+				});
+			} catch (error) {
+				console.error("Error printing KOT:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error printing KOT: {0}", [error.message || "Unknown error"]),
+					color: "error",
+				});
+				this.loading = false;
+			}
+		},
+		// Seamless dual-printing for Direct Order + KOT mode
+		async seamless_dual_print(invoiceDoc = null) {
+			try {
+				console.log("Starting seamless dual-print for Direct Order + KOT mode");
+				
+				// Use provided invoice document or fallback to component's invoice_doc
+				const targetInvoice = invoiceDoc || this.invoice_doc;
+				
+				if (!targetInvoice || !targetInvoice.name) {
+					throw new Error("Invoice document not available for printing");
+				}
+				
+				console.log("Using invoice for printing:", targetInvoice.name);
+				
+				// Use browser-based printing
+				await this.browser_dual_print(targetInvoice);
+				
+				this.eventBus.emit("show_message", {
+					title: __("Invoice and KOT printed successfully"),
+					color: "success",
+				});
+				
+			} catch (error) {
+				console.error("Error in seamless dual-print:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error in dual printing: {0}", [error.message || "Unknown error"]),
+					color: "error",
+				});
+			}
+		},
+		// Browser-based dual printing (fallback)
+		async browser_dual_print() {
+			// Step 1: Print the invoice silently 
+			await this.silent_print_invoice();
+			
+			// Step 2: Print the KOT silently
+			await this.silent_print_kot();
+		},
+		// Get KOT HTML for printing
+		async get_kot_html() {
+			try {
+				const response = await frappe.call({
+					method: "posawesome.posawesome.api.direct_orders.generate_kot_html_for_latest_invoice",
+				});
+				return response.message;
+			} catch (error) {
+				console.error("Error generating KOT HTML:", error);
+				throw new Error("Failed to generate KOT HTML");
+			}
+		},
+		// Silent print invoice (no popup window)
+		async silent_print_invoice() {
+			return new Promise((resolve, reject) => {
+				const print_format = this.pos_profile.print_format_for_online || this.pos_profile.print_format;
+				const letter_head = this.pos_profile.letter_head || 0;
+				const doctype = this.pos_profile.create_pos_invoice_instead_of_sales_invoice
+					? "POS Invoice"
+					: "Sales Invoice";
+				const url =
+					frappe.urllib.get_base_url() +
+					"/printview?doctype=" +
+					encodeURIComponent(doctype) +
+					"&name=" +
+					this.invoice_doc.name +
+					"&trigger_print=1" +
+					"&format=" +
+					print_format +
+					"&no_letterhead=" +
+					letter_head;
+
+				// Create hidden iframe for silent printing
+				const iframe = document.createElement('iframe');
+				iframe.style.display = 'none';
+				document.body.appendChild(iframe);
+				
+				iframe.onload = () => {
+					try {
+						// Auto-print when loaded
+						iframe.contentWindow.print();
+						setTimeout(() => {
+							document.body.removeChild(iframe);
+							resolve();
+						}, 1000);
+					} catch (error) {
+						document.body.removeChild(iframe);
+						reject(error);
+					}
+				};
+				
+				iframe.onerror = (error) => {
+					document.body.removeChild(iframe);
+					reject(error);
+				};
+				
+				iframe.src = url;
+			});
+		},
+		// Silent print KOT (no popup window)
+		async silent_print_kot() {
+			return new Promise((resolve, reject) => {
+				try {
+					// Generate KOT HTML for the latest invoice (no parameters needed)
+					frappe.call({
+						method: "posawesome.posawesome.api.direct_orders.generate_kot_html_for_latest_invoice",
+						callback: (result) => {
+							if (result.message && result.message.html) {
+								// Create hidden iframe for silent KOT printing
+								const iframe = document.createElement('iframe');
+								iframe.style.display = 'none';
+								document.body.appendChild(iframe);
+								
+								iframe.onload = () => {
+									try {
+										// Auto-print when loaded
+										iframe.contentWindow.print();
+										setTimeout(() => {
+											document.body.removeChild(iframe);
+											resolve();
+										}, 1000);
+									} catch (error) {
+										document.body.removeChild(iframe);
+										reject(error);
+									}
+								};
+								
+								iframe.onerror = (error) => {
+									document.body.removeChild(iframe);
+									reject(error);
+								};
+								
+								// Write KOT HTML to iframe
+								iframe.srcdoc = result.message.html;
+							} else {
+								reject(new Error("Failed to generate KOT HTML"));
+							}
+						},
+						error: (error) => {
+							reject(error);
+						}
+					});
+				} catch (error) {
+					reject(error);
+				}
+			});
 		},
 		// Validate due date (should not be in the past)
 		validate_due_date() {
@@ -2278,6 +2529,71 @@ export default {
 				}
 			}
 			this.eventBus.emit("pending_invoices_changed", getPendingOfflineInvoiceCount());
+		},
+		
+		// Handle KOT printing after invoice submission for Direct Order + KOT mode
+		async handle_kot_printing_after_invoice() {
+			try {
+				// Check if we're in Direct Order + KOT mode
+				const isDirectOrderWithKOT = this.pos_profile.posa_enable_restaurant_mode && 
+											this.pos_profile.posa_order_mode === 'Direct Order + KOT';
+				
+				if (!isDirectOrderWithKOT) {
+					return; // Not Direct Order + KOT mode, no KOT to print
+				}
+				
+				if (!this.invoice_doc || !this.invoice_doc.name) {
+					console.log("No invoice document available for KOT printing");
+					return;
+				}
+				
+				console.log("Generating KOT for Direct Order + KOT mode, invoice:", this.invoice_doc.name);
+				
+				// Generate KOT data for the invoice
+				const result = await frappe.call({
+					method: "posawesome.posawesome.api.direct_orders.generate_kot_for_invoice",
+					args: {
+						invoice_name: this.invoice_doc.name
+					}
+				});
+				
+				if (result.message) {
+					const kotData = result.message;
+					console.log("Generated KOT data:", kotData);
+					
+					// Convert invoice KOT data to the format expected by printKot
+					const kotPrintData = {
+						kot_number: `KOT-${this.invoice_doc.name}`,
+						order_type: kotData.order_type || "Direct Order",
+						table_number: kotData.table_number || "",
+						customer_name: kotData.customer_name || "Walk-in Customer",
+						datetime: new Date().toLocaleString(),
+						items: kotData.items || [],
+						special_notes: "Direct Order - Print after invoice",
+						total_items: kotData.items ? kotData.items.length : 0,
+						print_width: this.pos_profile.posa_kot_print_width || "58mm"
+					};
+					
+					// Import and use the KOT print function
+					const { printKot } = await import('../../plugins/kot_print.js');
+					await printKot(kotPrintData, { autoPrint: true });
+					
+					this.eventBus.emit("show_message", {
+						title: __("KOT printed successfully for invoice {0}", [this.invoice_doc.name]),
+						color: "success",
+					});
+					
+				} else {
+					console.log("No KOT data generated for invoice");
+				}
+				
+			} catch (error) {
+				console.error("Error printing KOT after invoice:", error);
+				this.eventBus.emit("show_message", {
+					title: __("Error printing KOT: {0}", [error.message || "Unknown error"]),
+					color: "warning", // Use warning instead of error since invoice was successful
+				});
+			}
 		},
 	},
 	// Lifecycle hook: created
