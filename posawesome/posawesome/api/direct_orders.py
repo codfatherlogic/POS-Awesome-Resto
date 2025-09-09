@@ -1,42 +1,65 @@
 import frappe
 from frappe import _
-from posawesome.posawesome.api.invoices import update_invoice
+import json
 
 
 @frappe.whitelist()
 def create_direct_invoice(customer, items, pos_profile, company, currency=None, conversion_rate=1, plc_conversion_rate=1, taxes_and_charges=None, print_kot=False):
     """Create a Sales Invoice directly without restaurant order (for Direct Order modes)"""
     try:
-        # Prepare invoice data structure similar to get_invoice_doc
-        invoice_data = {
-            "doctype": "Sales Invoice",
-            "customer": customer,
-            "company": company,
-            "pos_profile": pos_profile,
-            "currency": currency,
-            "conversion_rate": conversion_rate,
-            "plc_conversion_rate": plc_conversion_rate,
-            "is_pos": 1,
-            "update_stock": 0,  # For restaurant mode
-            "items": items,
-            "taxes_and_charges": taxes_and_charges,
-            "posting_date": frappe.utils.nowdate(),
-            "posting_time": frappe.utils.nowtime()
-        }
+        # Parse JSON strings if necessary
+        if isinstance(items, str):
+            items = json.loads(items)
+        if isinstance(print_kot, str):
+            print_kot = print_kot.lower() in ('true', '1', 'yes')
         
-        # Create the invoice using the standard update_invoice method
-        invoice_doc = update_invoice(frappe.as_json(invoice_data))
+        # Create a new Sales Invoice document
+        invoice_doc = frappe.new_doc("Sales Invoice")
         
-        result = {"invoice": invoice_doc}
+        # Set basic fields
+        invoice_doc.customer = customer
+        invoice_doc.company = company
+        invoice_doc.pos_profile = pos_profile
+        invoice_doc.currency = currency or frappe.get_cached_value("Company", company, "default_currency")
+        invoice_doc.conversion_rate = float(conversion_rate)
+        invoice_doc.plc_conversion_rate = float(plc_conversion_rate)
+        invoice_doc.is_pos = 1
+        invoice_doc.update_stock = 0  # For restaurant mode
+        invoice_doc.posting_date = frappe.utils.nowdate()
+        invoice_doc.posting_time = frappe.utils.nowtime()
+        
+        # Add taxes and charges if provided
+        if taxes_and_charges:
+            invoice_doc.taxes_and_charges = taxes_and_charges
+        
+        # Add items to the invoice
+        for item_data in items:
+            item = invoice_doc.append("items", {})
+            item.item_code = item_data.get("item_code")
+            item.qty = float(item_data.get("qty", 1))
+            item.rate = float(item_data.get("rate", 0))
+            item.amount = float(item_data.get("amount", 0))
+            item.description = item_data.get("description", "")
+            item.warehouse = item_data.get("warehouse")
+            item.uom = item_data.get("uom")
+            item.stock_uom = item_data.get("stock_uom")
+            item.conversion_factor = float(item_data.get("conversion_factor", 1))
+        
+        # Set missing values and save
+        invoice_doc.flags.ignore_permissions = True
+        invoice_doc.set_missing_values()
+        invoice_doc.save()
+        
+        result = {"invoice": invoice_doc.as_dict()}
         
         # If Direct Order + KOT mode, generate KOT data
-        if print_kot and invoice_doc.get("name"):
+        if print_kot and invoice_doc.name:
             try:
-                kot_data = generate_kot_for_invoice(invoice_doc["name"])
+                kot_data = generate_kot_for_invoice(invoice_doc.name)
                 result["kot_data"] = kot_data
                 result["kot_printed"] = True
             except Exception as e:
-                frappe.log_error(f"Failed to generate KOT for direct order {invoice_doc['name']}: {str(e)}")
+                frappe.log_error(f"Failed to generate KOT for direct order {invoice_doc.name}: {str(e)}")
                 result["kot_printed"] = False
                 # Don't fail the invoice creation if KOT generation fails
         
