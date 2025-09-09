@@ -54812,14 +54812,13 @@ function Fee(e, t, n, a, r, i) {
     default: x(() => [
       _(d, {
         dense: "",
-        class: "mb-2"
+        class: "mb-1"
       }, {
         default: x(() => [
           _(l, { cols: "4" }, {
             default: x(() => [
               _(o, {
-                "model-value": n.formatCurrency(n.subtotal),
-                prefix: n.currencySymbol(n.displayCurrency),
+                "model-value": n.formatFloat(n.subtotal),
                 label: e.frappe._("Total"),
                 "prepend-inner-icon": "mdi-cash",
                 variant: "solo",
@@ -54827,7 +54826,7 @@ function Fee(e, t, n, a, r, i) {
                 readonly: "",
                 color: "success",
                 class: "summary-field"
-              }, null, 8, ["model-value", "prefix", "label"])
+              }, null, 8, ["model-value", "label"])
             ]),
             _: 1
           }),
@@ -54986,7 +54985,7 @@ function Fee(e, t, n, a, r, i) {
     _: 1
   }, 8, ["class", "style"]);
 }
-const Nee = /* @__PURE__ */ nn(Lee, [["render", Fee], ["__scopeId", "data-v-1310b454"]]), Uee = {
+const Nee = /* @__PURE__ */ nn(Lee, [["render", Fee], ["__scopeId", "data-v-09a1ca82"]]), Uee = {
   name: "ItemsTable",
   props: {
     headers: Array,
@@ -71983,7 +71982,7 @@ const jie = {
             } catch (n) {
               console.warn("Failed to cache tax inclusive setting", n);
             }
-            import("./index-BaJwTfmS.js").then((n) => {
+            import("./index-0sCTzAQy.js").then((n) => {
               n && n.setTaxInclusiveSetting && n.setTaxInclusiveSetting(t);
             }).catch(() => {
             });

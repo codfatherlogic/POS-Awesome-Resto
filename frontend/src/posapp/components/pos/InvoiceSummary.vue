@@ -4,11 +4,10 @@
 		:style="(isDarkTheme ? 'background-color:#1E1E1E;' : '') + 'resize: vertical; overflow: auto;'"
 	>
 		<!-- First Row: Total, Make Order, Show Orders -->
-		<v-row dense class="mb-2">
+		<v-row dense class="mb-1">
 			<v-col cols="4">
 				<v-text-field
-					:model-value="formatCurrency(subtotal)"
-					:prefix="currencySymbol(displayCurrency)"
+					:model-value="formatFloat(subtotal)"
 					:label="frappe._('Total')"
 					prepend-inner-icon="mdi-cash"
 					variant="solo"
@@ -313,6 +312,7 @@ export default {
 	transition: all 0.2s ease !important;
 	position: relative;
 	overflow: hidden;
+	font-size: 0.8rem !important;
 }
 
 .summary-btn :deep(.v-btn__content) {
@@ -341,7 +341,7 @@ export default {
 /* Special styling for the PAY button */
 .pay-btn {
 	font-weight: 600 !important;
-	font-size: 1.1rem !important;
+	font-size: 0.9rem !important;
 	background: linear-gradient(135deg, #4caf50, #45a049) !important;
 	box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
 }
@@ -365,12 +365,12 @@ export default {
 /* Responsive optimizations */
 @media (max-width: 768px) {
 	.summary-btn {
-		font-size: 0.875rem !important;
+		font-size: 0.75rem !important;
 		padding: 8px 12px !important;
 	}
 
 	.pay-btn {
-		font-size: 1rem !important;
+		font-size: 0.8rem !important;
 	}
 
 	.summary-field {
@@ -380,12 +380,12 @@ export default {
 
 @media (max-width: 480px) {
 	.summary-btn {
-		font-size: 0.8rem !important;
+		font-size: 0.7rem !important;
 		padding: 6px 8px !important;
 	}
 
 	.pay-btn {
-		font-size: 0.95rem !important;
+		font-size: 0.75rem !important;
 	}
 }
 
