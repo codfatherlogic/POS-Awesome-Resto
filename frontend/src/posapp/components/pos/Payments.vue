@@ -1961,7 +1961,7 @@ export default {
 				this.loading = false;
 			}
 		},
-		// Seamless dual-printing for Direct Order + KOT mode
+		// Seamless dual-printing for Direct Order + KOT mode with popup prompt
 		async seamless_dual_print(invoiceDoc = null) {
 			try {
 				console.log("Starting seamless dual-print for Direct Order + KOT mode");
@@ -1975,21 +1975,53 @@ export default {
 				
 				console.log("Using invoice for printing:", targetInvoice.name);
 				
-				// Use browser-based printing
-				await this.browser_dual_print(targetInvoice);
+				// Step 1: Print the invoice first
+				await this.silent_print_invoice();
 				
 				this.eventBus.emit("show_message", {
-					title: __("Invoice and KOT printed successfully"),
+					title: __("Invoice printed successfully"),
 					color: "success",
 				});
+				
+				// Step 2: Show popup asking if user wants to print KOT
+				const shouldPrintKOT = await this.show_kot_print_prompt();
+				
+				if (shouldPrintKOT) {
+					// Step 3: Print KOT if user confirmed
+					await this.silent_print_kot();
+					
+					this.eventBus.emit("show_message", {
+						title: __("KOT printed successfully"),
+						color: "success",
+					});
+				}
 				
 			} catch (error) {
 				console.error("Error in seamless dual-print:", error);
 				this.eventBus.emit("show_message", {
-					title: __("Error in dual printing: {0}", [error.message || "Unknown error"]),
+					title: __("Error in printing: {0}", [error.message || "Unknown error"]),
 					color: "error",
 				});
 			}
+		},
+		// Show popup prompt for KOT printing
+		async show_kot_print_prompt() {
+			return new Promise((resolve) => {
+				frappe.confirm(
+					__("Invoice has been printed successfully!<br><br>Would you like to print the Kitchen Order Ticket (KOT) for this order?"),
+					() => {
+						console.log("User confirmed KOT printing");
+						resolve(true);
+					},
+					() => {
+						console.log("User declined KOT printing");
+						resolve(false);
+					},
+					__("Print KOT?"),
+					__("Yes, Print KOT"),
+					__("No, Skip KOT")
+				);
+			});
 		},
 		// Browser-based dual printing (fallback)
 		async browser_dual_print() {

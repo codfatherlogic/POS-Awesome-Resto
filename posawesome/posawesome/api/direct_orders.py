@@ -234,7 +234,7 @@ def generate_kot_html_for_latest_invoice():
         </html>
         """
         
-        return kot_html
+        return {"html": kot_html}
         
     except Exception as e:
         frappe.log_error(f"Error generating KOT HTML for invoice {invoice_name}: {str(e)}")
