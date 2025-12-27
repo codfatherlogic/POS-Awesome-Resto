@@ -1,3 +1,14 @@
-@tailwind base;
+/* Tailwind base disabled to prevent CSS conflicts with Frappe */
+/* @tailwind base; */
 @tailwind components;
-@tailwind utilities;
+/* Only include specific utilities, not all (to avoid .hidden conflict) */
+/* @tailwind utilities; */
+
+/* Add only the Tailwind utilities we need without conflicting with Frappe */
+.mx-4 {
+  margin-left: 1rem;
+  margin-right: 1rem;
+}
+.md-4 {
+  margin: 1rem;
+}
